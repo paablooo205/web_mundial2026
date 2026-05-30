@@ -17,7 +17,7 @@ export function PlayerAvatar({ name }: PlayerAvatarProps) {
     ? (words[0][0] + words[1][0]).toUpperCase()
     : words[0].substring(0, 2).toUpperCase();
 
-  // Construir candidatos de URL dinámicamente para soportar mayúsculas y múltiples formatos
+  // Construir candidatos de URL dinámicamente para soportar mayúsculas, nombres compuestos y múltiples formatos
   const urls = useMemo(() => {
     const exactName = name.trim().replace(/\s+/g, "_");
     const normalizedName = name
@@ -27,7 +27,22 @@ export function PlayerAvatar({ name }: PlayerAvatarProps) {
       .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
       .replace(/\s+/g, "_");
 
-    const bases = exactName === normalizedName ? [exactName] : [exactName, normalizedName];
+    // Si tiene apellido (ej: "Pablo Ortiz"), permitir buscar solo "Pablo" o "pablo"
+    const words = name.trim().split(/\s+/);
+    const firstName = words[0];
+    const normalizedFirstName = firstName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    // Reunir bases únicas para buscar
+    const basesSet = new Set<string>();
+    basesSet.add(exactName);
+    basesSet.add(normalizedName);
+    basesSet.add(firstName);
+    basesSet.add(normalizedFirstName);
+    const bases = Array.from(basesSet);
+
     const formats = [".webp", ".jpg", ".jpeg", ".png"];
 
     const list: string[] = [];
