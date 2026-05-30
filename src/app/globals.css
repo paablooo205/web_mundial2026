@@ -1243,30 +1243,121 @@ code {
   }
 
   .page {
-    width: calc(100% - 24px);
-    padding-top: 24px;
+    width: calc(100% - 16px);
+    padding-top: 20px;
   }
 
   .topbar-content {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
     gap: 12px;
+    padding: 12px 10px;
+  }
+
+  /* Cabecera deslizable táctil (Swipeable) sin barra de scroll visible */
+  .nav {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding-bottom: 4px;
+    gap: 2px !important;
+    -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none;  /* IE y Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none; /* Ocultar barra en Chrome/Safari */
+  }
+
+  .nav a,
+  .button {
+    white-space: nowrap !important;
+    padding: 6px 10px !important;
+    font-size: 0.8125rem !important;
+    min-height: 32px !important;
   }
 
   .page-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+    padding-bottom: 14px;
+    margin-bottom: 20px;
   }
 
   .admin-grid {
     grid-template-columns: 1fr;
   }
 
+  /* Filas de predicciones ultracompactas en móvil */
   .match-row {
-    grid-template-columns: 1fr 72px 72px;
+    grid-template-columns: 1fr 60px 60px !important;
+    gap: 8px !important;
+    padding: 10px 8px !important;
+  }
+
+  .match-row input {
+    min-height: 36px !important;
+    padding: 4px 6px !important;
+    font-size: 0.85rem !important;
+  }
+
+  .match-row .team-names strong {
+    font-size: 0.8125rem !important;
   }
 
   .special-row {
     grid-template-columns: 1fr;
+    gap: 8px !important;
+    padding: 12px 10px !important;
+  }
+
+  /* Home page grid cards */
+  .menu-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+    gap: 16px !important;
+  }
+
+  .menu-card {
+    padding: 20px !important;
+  }
+}
+
+/* Reglas adicionales para pantallas ultra-pequeñas (< 600px) */
+@media (max-width: 600px) {
+  th, td {
+    padding: 10px 8px !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .rank {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .player-avatar-container {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  /* Contenedor del bracket deslizable táctilmente */
+  .bracket-container {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 12px !important;
+  }
+
+  .bracket-viewport-wrap {
+    min-width: 1000px !important;
   }
 }

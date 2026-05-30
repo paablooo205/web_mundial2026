@@ -31,8 +31,8 @@ export default async function ClasificacionPage() {
               <th>Puntos</th>
               <th title="Marcador exacto (+5)">Exactos</th>
               <th title="1 / X / 2 acertado sin pleno (+2)">Signos</th>
-              <th title="Diferencia de goles sin pleno (+1)">Difs.</th>
-              <th title="Equipo que acertaste que avanza en cuartos, semifinales o final (+3)">Clasif.</th>
+              <th className="hide-mobile" title="Diferencia de goles sin pleno (+1)">Difs.</th>
+              <th className="hide-mobile" title="Equipo que acertaste que avanza en cuartos, semifinales o final (+3)">Clasif.</th>
             </tr>
           </thead>
           <tbody>
@@ -52,8 +52,8 @@ export default async function ClasificacionPage() {
                 <td>{row.total_points}</td>
                 <td>{row.exact_scores}</td>
                 <td>{signHitsOnly(row.exact_scores, row.correct_signs)}</td>
-                <td>{row.goal_difference_hits ?? 0}</td>
-                <td>{row.advancement_hits ?? 0}</td>
+                <td className="hide-mobile">{row.goal_difference_hits ?? 0}</td>
+                <td className="hide-mobile">{row.advancement_hits ?? 0}</td>
               </tr>
             ))}
             {standings.length === 0 ? (
