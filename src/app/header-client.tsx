@@ -21,10 +21,10 @@ export function HeaderClient() {
         <nav className="nav" aria-label="Navegacion">
           <Link href="/">Inicio</Link>
           <Link href="/clasificacion">Clasificación</Link>
+          <Link href="/predicciones">Tu porra</Link>
+          <Link href="/apuestas-jugadores">Club Selecto</Link>
           <Link href="/resultados">Resultados</Link>
           <Link href="/resultado-final">Resultado Final</Link>
-          <Link href="/apuestas-jugadores">Club Selecto</Link>
-          <Link href="/predicciones">Tu porra</Link>
           <Link href="/admin">Admin</Link>
         </nav>
       </div>
