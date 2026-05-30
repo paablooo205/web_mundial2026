@@ -114,16 +114,16 @@ drop view if exists public_standings;
 
 create view public_standings as
 select
-  s.player_id,
+  p.id as player_id,
   p.display_name,
-  s.total_points,
-  s.exact_scores,
-  s.correct_signs,
-  s.goal_difference_hits,
-  s.advancement_hits,
+  coalesce(s.total_points, 0)          as total_points,
+  coalesce(s.exact_scores, 0)          as exact_scores,
+  coalesce(s.correct_signs, 0)         as correct_signs,
+  coalesce(s.goal_difference_hits, 0)  as goal_difference_hits,
+  coalesce(s.advancement_hits, 0)      as advancement_hits,
   s.position
-from standings s
-join players p on p.id = s.player_id
+from players p
+left join standings s on s.player_id = p.id
 order by s.position asc nulls last, s.total_points desc;
 
 alter table players enable row level security;
