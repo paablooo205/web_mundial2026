@@ -42,6 +42,12 @@ function getOrCreatePredictionRow(
 }
 
 export async function savePredictionsFromForm(form: FormData) {
+  const TOURNAMENT_START = new Date("2026-06-11T00:00:00Z");
+  const LOCK_DATE = new Date(TOURNAMENT_START.getTime() - 24 * 60 * 60 * 1000);
+  if (new Date() >= LOCK_DATE) {
+    return { ok: false as const, error: "El tiempo para hacer predicciones ha terminado. La porra está cerrada." };
+  }
+
   const raw = Object.fromEntries(form.entries());
   const parsed = baseSchema.safeParse(raw);
 

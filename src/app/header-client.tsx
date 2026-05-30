@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { Countdown } from "./countdown";
 
 export function HeaderClient() {
   const pathname = usePathname();
@@ -12,7 +13,10 @@ export function HeaderClient() {
       <div className="topbar-content">
         <Link className="brand" href="/">
           <strong>{process.env.NEXT_PUBLIC_APP_NAME ?? "Porra Mundial 2026"}</strong>
-          <span>USA 2026 · Club Selecto</span>
+          <span style={{ display: "flex", alignItems: "center" }}>
+            USA 2026 · Club Selecto
+            <Countdown />
+          </span>
         </Link>
         <nav className="nav" aria-label="Navegacion">
           <Link href="/">Inicio</Link>

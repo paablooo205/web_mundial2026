@@ -435,6 +435,29 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
           font-size: 0.85rem;
         }
 
+        @media (max-width: 600px) {
+          .match-item {
+            grid-template-columns: 1fr;
+            text-align: center;
+            gap: 12px;
+            padding: 16px;
+          }
+          .match-team {
+            align-items: center !important;
+            text-align: center !important;
+          }
+          .match-team--home {
+            flex-direction: column;
+          }
+          .match-team--away {
+            flex-direction: column-reverse; /* Flag below name */
+          }
+          .score-pill {
+            min-width: auto;
+            width: 100%;
+          }
+        }
+
         @keyframes trophyPulse {
           0% { transform: scale(0.95) rotate(-2deg); }
           100% { transform: scale(1.05) rotate(2deg); }

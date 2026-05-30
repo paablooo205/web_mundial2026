@@ -42,13 +42,18 @@ export async function getPlayerEntryData(code: string) {
     supabase.from("predictions").select("match_id, predicted_home_goals, predicted_away_goals, predicted_winner_team_id").eq("player_id", player.id)
   ]);
 
+  const TOURNAMENT_START = new Date("2026-06-11T00:00:00Z");
+  const LOCK_DATE = new Date(TOURNAMENT_START.getTime() - 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const isLocked = now >= LOCK_DATE;
+
   return {
     player,
     matches: matches ?? [],
     teams: teams ?? [],
     specialPrediction: specialPrediction ?? null,
     predictions: predictions ?? [],
-    locked: false
+    locked: isLocked
   };
 }
 

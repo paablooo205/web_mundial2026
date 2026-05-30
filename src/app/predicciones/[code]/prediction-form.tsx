@@ -1,7 +1,7 @@
 "use client";
 
 import { isDoubleScoringPhase } from "@/lib/knockout-scoring";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 type Player = {
   id: number;
@@ -111,6 +111,12 @@ export function PredictionForm({
   const [activeGroup, setActiveGroup] = useState<string>("A");
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<string>("Dieciseisavos de final");
   const [bracketView, setBracketView] = useState<"lista" | "cuadro">("cuadro");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 760) {
+      setBracketView("lista");
+    }
+  }, []);
 
   // Master scores state: match_id → { home: number|"", away: number|"" }
   const [scores, setScores] = useState<Record<number, { home: number | ""; away: number | "" }>>(() => {
@@ -635,31 +641,33 @@ export function PredictionForm({
               <section className="panel">
                 {groupMatches.map((match) => (
                   <div className="match-row" key={match.id}>
-                    <div className="team-names">
+                    <div className="match-team-input match-team-input--home">
                       <strong>{match.home_team_name ?? "Por decidir"}</strong>
-                      <span className="muted">vs</span>
+                      <input
+                        aria-label={`Goles local ${match.id}`}
+                        disabled={locked}
+                        min={0}
+                        name={`match_${match.id}_home`}
+                        type="number"
+                        placeholder="0"
+                        value={scores[match.id]?.home ?? ""}
+                        onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
+                      />
+                    </div>
+                    <div className="match-vs muted">vs</div>
+                    <div className="match-team-input match-team-input--away">
+                      <input
+                        aria-label={`Goles visitante ${match.id}`}
+                        disabled={locked}
+                        min={0}
+                        name={`match_${match.id}_away`}
+                        type="number"
+                        placeholder="0"
+                        value={scores[match.id]?.away ?? ""}
+                        onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
+                      />
                       <strong>{match.away_team_name ?? "Por decidir"}</strong>
                     </div>
-                    <input
-                      aria-label={`Goles local ${match.id}`}
-                      disabled={locked}
-                      min={0}
-                      name={`match_${match.id}_home`}
-                      type="number"
-                      placeholder="0"
-                      value={scores[match.id]?.home ?? ""}
-                      onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
-                    />
-                    <input
-                      aria-label={`Goles visitante ${match.id}`}
-                      disabled={locked}
-                      min={0}
-                      name={`match_${match.id}_away`}
-                      type="number"
-                      placeholder="0"
-                      value={scores[match.id]?.away ?? ""}
-                      onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
-                    />
                   </div>
                 ))}
               </section>
