@@ -1,27 +1,18 @@
-import { getAdminFullData, getAdminSummary } from "@/lib/queries";
-import { AdminForm } from "./admin-form";
+import { getAdminFullData } from "@/lib/queries";
+import { PlayerBetsViewer } from "./player-bets-viewer";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
-  const summary = await getAdminSummary();
+export default async function ApuestasJugadoresPage() {
   const data = await getAdminFullData();
 
-  // Map database structures to fit AdminForm typings perfectly
+  // Mapeamos los partidos
   const mappedMatches = data.matches.map((m: any) => ({
     id: m.id,
     phase: m.phase,
     home_team_name: m.home_team_name,
     away_team_name: m.away_team_name,
     kickoff_at: m.kickoff_at
-  }));
-
-  const mappedResults = data.results.map((r: any) => ({
-    match_id: Number(r.match_id),
-    home_goals: r.home_goals,
-    away_goals: r.away_goals,
-    status: r.status,
-    winner_team_id: r.winner_team_id ? Number(r.winner_team_id) : null
   }));
 
   const mappedPredictions = data.predictions.map((p: any) => ({
@@ -40,23 +31,21 @@ export default async function AdminPage() {
   }));
 
   return (
-    <main className="page page--admin">
+    <main className="page">
       <div className="page-header">
         <div>
-          <h1>Panel de Administración</h1>
-          <p className="muted">Registra los resultados reales del Mundial y actualiza la clasificación al instante.</p>
+          <h1>Apuestas de Jugadores</h1>
+          <p className="muted">Consulta y compara las porras personales y predicciones de los integrantes del Club Selecto.</p>
         </div>
+        <span className="status-pill">Pública</span>
       </div>
 
-      <AdminForm
+      <PlayerBetsViewer
         matches={mappedMatches}
         teams={data.teams}
-        results={mappedResults}
-        awards={data.awards}
         players={data.players}
         predictions={mappedPredictions}
         specialPredictions={mappedSpecialPredictions}
-        summary={summary}
       />
     </main>
   );

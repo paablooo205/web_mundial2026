@@ -34,6 +34,8 @@ create table if not exists predictions (
   predicted_home_goals integer,
   predicted_away_goals integer,
   predicted_winner_team_id bigint references teams(id),
+  predicted_home_team_id bigint references teams(id),
+  predicted_away_team_id bigint references teams(id),
   locked_at timestamptz,
   submitted_at timestamptz not null default now(),
   unique(player_id, match_id)
@@ -73,6 +75,8 @@ create table if not exists standings (
   total_points numeric not null default 0,
   exact_scores integer not null default 0,
   correct_signs integer not null default 0,
+  goal_difference_hits integer not null default 0,
+  advancement_hits integer not null default 0,
   champion_hit boolean not null default false,
   top_scorer_hit boolean not null default false,
   golden_ball_hit boolean not null default false,
@@ -106,16 +110,17 @@ from matches m
 left join teams ht on ht.id = m.home_team_id
 left join teams at on at.id = m.away_team_id;
 
-create or replace view public_standings as
+drop view if exists public_standings;
+
+create view public_standings as
 select
   s.player_id,
   p.display_name,
   s.total_points,
   s.exact_scores,
   s.correct_signs,
-  s.champion_hit,
-  s.top_scorer_hit,
-  s.golden_ball_hit,
+  s.goal_difference_hits,
+  s.advancement_hits,
   s.position
 from standings s
 join players p on p.id = s.player_id

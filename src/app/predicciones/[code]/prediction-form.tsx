@@ -1,5 +1,6 @@
 "use client";
 
+import { isDoubleScoringPhase } from "@/lib/knockout-scoring";
 import { useState, useMemo } from "react";
 
 type Player = {
@@ -385,22 +386,30 @@ export function PredictionForm({
       formData.set(`match_${matchId}_winner`, String(teamId));
     });
 
-    // Also automatically set winner IDs for non-draw matches if not explicitly set
+    // Knockout: winner + cruce del cuadro (equipos local/visitante predichos)
     matches.forEach((match) => {
-      if (match.phase !== "Fase de Grupos") {
-        const score = scores[match.id];
-        if (score && score.home !== "" && score.away !== "") {
-          const hg = Number(score.home);
-          const ag = Number(score.away);
-          const resolvedHome = resolvedKnockoutTeams[match.id]?.home;
-          const resolvedAway = resolvedKnockoutTeams[match.id]?.away;
-          
-          if (hg !== ag) {
-            const winnerName = hg > ag ? resolvedHome : resolvedAway;
-            const winnerTeam = teams.find((t) => t.canonical_name === winnerName);
-            if (winnerTeam) {
-              formData.set(`match_${match.id}_winner`, String(winnerTeam.id));
-            }
+      if (match.phase === "Fase de Grupos") return;
+
+      const resolvedHome = resolvedKnockoutTeams[match.id]?.home;
+      const resolvedAway = resolvedKnockoutTeams[match.id]?.away;
+      const homeTeam = teams.find((t) => t.canonical_name === resolvedHome);
+      const awayTeam = teams.find((t) => t.canonical_name === resolvedAway);
+
+      if (isDoubleScoringPhase(match.phase)) {
+        if (homeTeam) formData.set(`match_${match.id}_home_team_id`, String(homeTeam.id));
+        if (awayTeam) formData.set(`match_${match.id}_away_team_id`, String(awayTeam.id));
+      }
+
+      const score = scores[match.id];
+      if (score && score.home !== "" && score.away !== "") {
+        const hg = Number(score.home);
+        const ag = Number(score.away);
+
+        if (hg !== ag) {
+          const winnerName = hg > ag ? resolvedHome : resolvedAway;
+          const winnerTeam = teams.find((t) => t.canonical_name === winnerName);
+          if (winnerTeam) {
+            formData.set(`match_${match.id}_winner`, String(winnerTeam.id));
           }
         }
       }
@@ -730,7 +739,7 @@ export function PredictionForm({
                 </div>
 
                 <div className="bracket-center-section champion-section">
-                  <h4 className="bracket-col-title" style={{ color: "var(--gold)" }}>🏆 CAMPEÓN DEL MUNDO 🏆</h4>
+                  <h4 className="bracket-col-title" style={{ color: "var(--usa-white)" }}>🏆 CAMPEÓN DEL MUNDO 🏆</h4>
                   <div className="champion-card">
                     <div className="trophy-glow">🏆</div>
                     <strong className={isResolved(simulatedChampion) ? "champion-name resolved" : "champion-name pending"}>

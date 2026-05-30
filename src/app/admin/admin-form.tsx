@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import {
+  groupCodes as BRACKET_GROUP_CODES,
+  isBracketSlotResolved,
+  resolveKnockoutBracket
+} from "@/lib/knockout-bracket";
+import { RealKnockoutBracket } from "./real-knockout-bracket";
 
 type Match = {
   id: number;
@@ -65,7 +71,7 @@ type Props = {
   };
 };
 
-const groupCodes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+const groupCodes = [...BRACKET_GROUP_CODES];
 
 const knockoutRounds = [
   "Dieciseisavos de final",
@@ -76,64 +82,30 @@ const knockoutRounds = [
   "Final",
 ];
 
-// Mapping of match ID → formula for home and away teams in KO rounds
-const KO_FORMULAS: Record<number, { home: string; away: string }> = {
-  73: { home: "2A", away: "2B" },
-  74: { home: "1C", away: "2F" },
-  75: { home: "1E", away: "3ABCDF" },
-  76: { home: "1F", away: "2C" },
-  77: { home: "2E", away: "2I" },
-  78: { home: "1I", away: "3CDFGH" },
-  79: { home: "1A", away: "3CEFHI" },
-  80: { home: "1L", away: "3EHIJK" },
-  81: { home: "1G", away: "3AEHIJ" },
-  82: { home: "1D", away: "3BEFIJ" },
-  83: { home: "1H", away: "2J" },
-  84: { home: "2K", away: "2L" },
-  85: { home: "1B", away: "3EFGIJ" },
-  86: { home: "2D", away: "2G" },
-  87: { home: "1J", away: "2H" },
-  88: { home: "1K", away: "3DEIJL" },
-
-  89: { home: "W73", away: "W75" },
-  90: { home: "W74", away: "W77" },
-  91: { home: "W76", away: "W78" },
-  92: { home: "W79", away: "W80" },
-  93: { home: "W83", away: "W84" },
-  94: { home: "W81", away: "W82" },
-  95: { home: "W86", away: "W88" },
-  96: { home: "W85", away: "W87" },
-
-  97: { home: "W89", away: "W90" },
-  98: { home: "W93", away: "W94" },
-  99: { home: "W91", away: "W92" },
-  100: { home: "W95", away: "W96" },
-
-  101: { home: "W97", away: "W98" },
-  102: { home: "W99", away: "W100" },
-
-  103: { home: "L101", away: "L102" },
-  104: { home: "W101", away: "W102" },
-};
+const CRON_SYNC_DISPLAY_URL = `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/api/apify/sync?secret=mundial2026secret`;
 
 export function AdminForm({
   matches,
   teams,
   results,
   awards,
-  players,
-  predictions,
-  specialPredictions,
   summary,
 }: Props) {
-  const [currentSection, setCurrentSection] = useState<"resumen" | "resultados" | "jugadores">("resumen");
+  // Password Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("admin_auth") === "true";
+    }
+    return false;
+  });
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const [currentSection, setCurrentSection] = useState<"resumen" | "resultados">("resumen");
   const [activeTab, setActiveTab] = useState<"grupos" | "eliminatorias" | "especiales">("grupos");
   const [activeGroup, setActiveGroup] = useState<string>("A");
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<string>("Dieciseisavos de final");
-
-  // Selected player for viewing predictions
-  const [selectedPlayerId, setSelectedPlayerId] = useState<number>(players[0]?.id || 0);
-  const [activeViewerGroup, setActiveViewerGroup] = useState<string>("A");
+  const [realResultsKnockoutMode, setRealResultsKnockoutMode] = useState<"rondas" | "cuadro">("cuadro");
 
   // Local state for actual match results
   const [realScores, setRealScores] = useState<Record<number, { home: number | ""; away: number | ""; winner: number | "" }>>(() => {
@@ -158,11 +130,22 @@ export function AdminForm({
   const [syncingApify, setSyncingApify] = useState(false);
   const [globalMessage, setGlobalMessage] = useState<string | null>(null);
 
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (password === "pablo.ortiz25") {
+      setIsAuthenticated(true);
+      sessionStorage.setItem("admin_auth", "true");
+      setLoginError(null);
+    } else {
+      setLoginError("Contraseña incorrecta");
+    }
+  }
+
   const triggerApifySync = async () => {
     setSyncingApify(true);
     setGlobalMessage(null);
     try {
-      const secret = "mundial2026secret"; // default local secret
+      const secret = "mundial2026secret";
       const response = await fetch(`/api/apify/sync?secret=${secret}`, { method: "POST" });
       const data = await response.json();
 
@@ -204,6 +187,8 @@ export function AdminForm({
           awayGoals: score.away,
           status: score.home !== "" && score.away !== "" ? "finished" : "scheduled",
           winnerTeamId: score.winner || null,
+          homeTeamId: teams.find((t) => t.canonical_name === matches.find((m) => m.id === matchId)?.home_team_name)?.id ?? null,
+          awayTeamId: teams.find((t) => t.canonical_name === matches.find((m) => m.id === matchId)?.away_team_name)?.id ?? null
         }),
       });
 
@@ -269,200 +254,84 @@ export function AdminForm({
     }
   });
 
-  // ─── Computations for selected player predictions viewer ───
-  const selectedPlayerPredictions = useMemo(() => {
-    return predictions.filter((p) => p.player_id === selectedPlayerId);
-  }, [predictions, selectedPlayerId]);
+  const getRealWinnerTeamId = useCallback(
+    (matchId: number, homeName: string, awayName: string) => {
+      const score = realScores[matchId];
+      if (!score || score.home === "" || score.away === "") return null;
+      const hg = Number(score.home);
+      const ag = Number(score.away);
+      const homeTeam = teams.find((t) => t.canonical_name === homeName);
+      const awayTeam = teams.find((t) => t.canonical_name === awayName);
+      if (hg > ag) return homeTeam?.id ?? null;
+      if (ag > hg) return awayTeam?.id ?? null;
+      if (score.winner) return Number(score.winner);
+      return results.find((r) => r.match_id === matchId)?.winner_team_id ?? null;
+    },
+    [realScores, teams, results]
+  );
 
-  const selectedPlayerSpecial = useMemo(() => {
-    return specialPredictions.find((sp) => sp.player_id === selectedPlayerId) || null;
-  }, [specialPredictions, selectedPlayerId]);
-
-  // Simulated brackets for the currently viewed player (copied bracket engine of player form)
-  const playerSimulatedBracket = useMemo(() => {
-    const playerScores: Record<number, { home: number | ""; away: number | "" }> = {};
-    selectedPlayerPredictions.forEach((p) => {
-      playerScores[p.match_id] = {
-        home: p.predicted_home_goals !== null ? p.predicted_home_goals : "",
-        away: p.predicted_away_goals !== null ? p.predicted_away_goals : "",
-      };
+  const realKnockoutBracket = useMemo(() => {
+    const scores: Record<number, { home: number | ""; away: number | "" }> = {};
+    Object.entries(realScores).forEach(([id, s]) => {
+      scores[Number(id)] = { home: s.home, away: s.away };
     });
 
-    const isPlayerGroupFullyPredicted = (code: string) => {
-      const groupTeamNames = new Set(
-        teams.filter((t) => t.group_code === code).map((t) => t.canonical_name)
-      );
-      const groupMatches = groupStageMatches.filter(
-        (m) => m.home_team_name && groupTeamNames.has(m.home_team_name)
-      );
-      if (groupMatches.length === 0) return false;
-      return groupMatches.every((m) => {
-        const score = playerScores[m.id];
-        return score && score.home !== "" && score.away !== "";
-      });
-    };
-
-    const computePlayerStandings = (groupCode: string) => {
-      const groupTeams = teams.filter((t) => t.group_code === groupCode);
-      const stats: Record<string, { team: Team; pts: number; gd: number; gs: number }> = {};
-      groupTeams.forEach((t) => {
-        stats[t.canonical_name] = { team: t, pts: 0, gd: 0, gs: 0 };
-      });
-
-      const groupMatchIds = new Set(groupTeams.map((t) => t.canonical_name));
-      matches.forEach((m) => {
-        if (m.phase !== "Fase de Grupos") return;
-        const homeInGroup = m.home_team_name && groupMatchIds.has(m.home_team_name);
-        const awayInGroup = m.away_team_name && groupMatchIds.has(m.away_team_name);
-        if (!homeInGroup || !awayInGroup) return;
-
-        const score = playerScores[m.id];
-        if (!score || score.home === "" || score.away === "") return;
-
+    return resolveKnockoutBracket({
+      groupCodes,
+      groupStageMatches,
+      teams,
+      scores,
+      getWinnerTeamId: (matchId, homeName, awayName, score) => {
         const hg = Number(score.home);
         const ag = Number(score.away);
-        const hs = stats[m.home_team_name!];
-        const as_ = stats[m.away_team_name!];
-        if (!hs || !as_) return;
-
-        hs.gs += hg;
-        as_.gs += ag;
-        hs.gd += hg - ag;
-        as_.gd += ag - hg;
-
-        if (hg > ag) { hs.pts += 3; }
-        else if (hg < ag) { as_.pts += 3; }
-        else { hs.pts += 1; as_.pts += 1; }
-      });
-
-      return Object.values(stats).sort((a, b) => {
-        if (b.pts !== a.pts) return b.pts - a.pts;
-        if (b.gd !== a.gd) return b.gd - a.gd;
-        if (b.gs !== a.gs) return b.gs - a.gs;
-        return a.team.canonical_name.localeCompare(b.team.canonical_name);
-      });
-    };
-
-    const allStandings: Record<string, ReturnType<typeof computePlayerStandings>> = {};
-    groupCodes.forEach((code) => {
-      allStandings[code] = computePlayerStandings(code);
+        const homeTeam = teams.find((t) => t.canonical_name === homeName);
+        const awayTeam = teams.find((t) => t.canonical_name === awayName);
+        if (hg > ag) return homeTeam?.id ?? null;
+        if (ag > hg) return awayTeam?.id ?? null;
+        const rs = realScores[matchId];
+        if (rs?.winner) return Number(rs.winner);
+        return results.find((r) => r.match_id === matchId)?.winner_team_id ?? null;
+      }
     });
+  }, [realScores, teams, groupStageMatches, results]);
 
-    const allThirds = groupCodes.map((code) => {
-      const standing = allStandings[code];
-      const entry = standing[2];
-      return entry ? { ...entry, groupCode: code } : null;
-    }).filter(Boolean) as Array<{ team: Team; pts: number; gd: number; gs: number; groupCode: string }>;
+  // Si no está autenticado, mostramos la pantalla de login con contraseña
+  if (!isAuthenticated) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "55vh" }}>
+        <div className="panel auth-panel" style={{ width: "100%", maxWidth: "420px", padding: "36px", background: "rgba(12, 21, 40, 0.5)", backdropFilter: "blur(10px)", borderTop: "3px solid var(--usa-red)" }}>
+          <div className="auth-panel__head" style={{ textAlign: "center", marginBottom: "24px" }}>
+            <span style={{ fontSize: "3rem", marginBottom: "12px", display: "block" }}>🔒</span>
+            <h2 style={{ fontSize: "1.35rem", fontWeight: "700", color: "var(--usa-white)" }}>Administrador</h2>
+            <p className="muted" style={{ fontSize: "0.85rem", marginTop: "6px" }}>Introduce la contraseña oficial para ingresar al Panel de Administración.</p>
+          </div>
 
-    allThirds.sort((a, b) => {
-      if (b.pts !== a.pts) return b.pts - a.pts;
-      if (b.gd !== a.gd) return b.gd - a.gd;
-      if (b.gs !== a.gs) return b.gs - a.gs;
-      return a.team.canonical_name.localeCompare(b.team.canonical_name);
-    });
+          <form onSubmit={handleLogin} className="form-stack">
+            <div>
+              <label className="form-label" htmlFor="admin-password">Contraseña</label>
+              <input
+                id="admin-password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setLoginError(null);
+                }}
+                placeholder="••••••••"
+                style={{ textAlign: "center", letterSpacing: "0.15em" }}
+                autoComplete="current-password"
+              />
+              {loginError && <p className="form-error" style={{ textAlign: "center", fontWeight: "600" }}>{loginError}</p>}
+            </div>
 
-    const assignedThirds = new Set<string>();
-    const resolved: Record<number, { home: string; away: string }> = {};
-
-    const resolveFormula = (formula: string): string => {
-      if (!formula) return "Por decidir";
-
-      const matchRef = /^([WL])(\d+)$/.exec(formula);
-      if (matchRef) {
-        const type = matchRef[1];
-        const refId = Number(matchRef[2]);
-        const refTeams = resolved[refId];
-
-        if (!refTeams) return `Ganador de M${refId}`;
-        if (refTeams.home.startsWith("Ganador") || refTeams.away.startsWith("Ganador") ||
-            refTeams.home === "Por decidir" || refTeams.away === "Por decidir" ||
-            refTeams.home.includes("º Grupo") || refTeams.away.includes("º Grupo")) {
-          return type === "W" ? `Ganador de M${refId}` : `Perdedor de M${refId}`;
-        }
-
-        const score = playerScores[refId];
-        if (!score || score.home === "" || score.away === "") {
-          return type === "W" ? `Ganador de M${refId}` : `Perdedor de M${refId}`;
-        }
-
-        const hg = Number(score.home);
-        const ag = Number(score.away);
-        
-        let winnerName = "";
-        let loserName = "";
-        
-        if (hg > ag) {
-          winnerName = refTeams.home;
-          loserName = refTeams.away;
-        } else if (hg < ag) {
-          winnerName = refTeams.away;
-          loserName = refTeams.home;
-        } else {
-          // Check saved winner team ID in predictions
-          const savedPred = selectedPlayerPredictions.find((sp) => sp.match_id === refId);
-          if (savedPred && savedPred.predicted_winner_team_id) {
-            const winnerObj = teams.find((t) => t.id === savedPred.predicted_winner_team_id);
-            if (winnerObj && winnerObj.canonical_name === refTeams.home) {
-              winnerName = refTeams.home;
-              loserName = refTeams.away;
-            } else if (winnerObj && winnerObj.canonical_name === refTeams.away) {
-              winnerName = refTeams.away;
-              loserName = refTeams.home;
-            }
-          }
-          if (!winnerName) {
-            winnerName = refTeams.home;
-            loserName = refTeams.away;
-          }
-        }
-        return type === "W" ? winnerName : loserName;
-      }
-
-      const groupPos = /^(\d)([A-L])$/.exec(formula);
-      if (groupPos) {
-        const rank = Number(groupPos[1]) - 1;
-        const code = groupPos[2];
-        if (!isPlayerGroupFullyPredicted(code)) {
-          return `${groupPos[1]}º Grupo ${code}`;
-        }
-        return allStandings[code]?.[rank]?.team.canonical_name ?? `${groupPos[1]}º Grupo ${code}`;
-      }
-
-      const thirdRef = /^3([A-L]+)$/.exec(formula);
-      if (thirdRef) {
-        const allowed = thirdRef[1];
-        const allAllowedPredicted = allowed.split("").every((code) => isPlayerGroupFullyPredicted(code));
-        if (!allAllowedPredicted) {
-          return `3º de ${allowed}`;
-        }
-        const match = allThirds.find(
-          (t) => allowed.includes(t.groupCode) && !assignedThirds.has(t.team.canonical_name)
-        );
-        if (match) {
-          assignedThirds.add(match.team.canonical_name);
-          return match.team.canonical_name;
-        }
-        return `3º mejor de ${allowed}`;
-      }
-
-      return formula;
-    };
-
-    for (let id = 73; id <= 104; id++) {
-      const formula = KO_FORMULAS[id];
-      if (formula) {
-        resolved[id] = {
-          home: resolveFormula(formula.home),
-          away: resolveFormula(formula.away),
-        };
-      }
-    }
-
-    return { resolved, standings: allStandings };
-  }, [selectedPlayerPredictions, teams, matches]);
-
-  const isResolved = (name: string) =>
-    name && !name.startsWith("Ganador") && !name.startsWith("Perdedor") && name !== "Por decidir" && !/^[0-9]º/.test(name) && !name.startsWith("3º mejor");
+            <button className="button primary" type="submit" style={{ width: "100%", minHeight: "44px", marginTop: "8px" }}>
+              Ingresar
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-dashboard-layout">
@@ -482,20 +351,13 @@ export function AdminForm({
         >
           Resultados Reales
         </button>
-        <button
-          type="button"
-          className={`admin-menu-btn ${currentSection === "jugadores" ? "active" : ""}`}
-          onClick={() => setCurrentSection("jugadores")}
-        >
-          Apuestas de Jugadores
-        </button>
       </aside>
 
       {/* Panel de Contenido Principal */}
-      <div className="admin-content-pane" style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div className="admin-content-pane">
         
         {globalMessage && (
-          <div className="panel" style={{ padding: "16px 20px", background: "rgba(16, 185, 129, 0.15)", borderColor: "var(--accent)", marginBottom: "16px" }}>
+          <div className="panel" style={{ padding: "16px 20px", background: "var(--secondary-soft)", borderColor: "var(--secondary)", marginBottom: "16px" }}>
             <strong style={{ color: "var(--ink)", fontSize: "14px" }}>{globalMessage}</strong>
           </div>
         )}
@@ -520,10 +382,10 @@ export function AdminForm({
             </div>
 
             {/* Panel de Control de Sincronización */}
-            <section className="panel" style={{ padding: "24px", background: "rgba(2, 6, 23, 0.45)", borderLeft: "4px solid var(--accent)" }}>
+            <section className="panel" style={{ padding: "24px", background: "rgba(0, 0, 0, 0.2)", borderLeft: "4px solid var(--usa-red-bright)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
                 <div>
-                  <h3 style={{ margin: 0, color: "var(--accent)", fontSize: "18px" }}>Sincronización Automática con Flashscore</h3>
+                  <h3 style={{ margin: 0, color: "var(--usa-white)", fontSize: "18px" }}>Sincronización Automática con Flashscore</h3>
                   <p className="muted" style={{ margin: "6px 0 0 0", fontSize: "14px" }}>
                     Obtén goles, ganadores y estado de los partidos reales automáticamente sin meterlos a mano usando el Scraper de Apify.
                   </p>
@@ -540,7 +402,7 @@ export function AdminForm({
               </div>
               
               <div style={{ marginTop: "16px", borderTop: "1px solid var(--line)", paddingTop: "14px", fontSize: "12px" }}>
-                <span style={{ color: "var(--gold)", fontWeight: "700" }}>Automatización en segundo plano (CRON):</span> Para que la porra se actualice sola durante el mundial real sin tener que pulsar este botón, puedes configurar una petición automática <code>POST</code> cada 10 minutos a <code>{typeof window !== 'undefined' ? `${window.location.origin}/api/apify/sync?secret=mundial2026secret` : "/api/apify/sync?secret=mundial2026secret"}</code> en un servicio gratuito como <b>cron-job.org</b>.
+                <span style={{ color: "var(--secondary)", fontWeight: "700" }}>Automatización en segundo plano (CRON):</span> Para que la porra se actualice sola durante el mundial real sin tener que pulsar este botón, puedes configurar una petición automática <code>POST</code> cada 10 minutos a <code>{CRON_SYNC_DISPLAY_URL}</code> en un servicio gratuito como <b>cron-job.org</b>. En producción define <code>NEXT_PUBLIC_APP_URL</code> en Vercel (ej. <code>https://tu-dominio.vercel.app</code>).
               </div>
             </section>
           </div>
@@ -633,98 +495,151 @@ export function AdminForm({
 
             {/* Eliminatorias */}
             <div style={{ display: activeTab === "eliminatorias" ? "block" : "none" }}>
-              <div className="subtabs-container">
-                {knockoutRounds.map((round) => (
+              <div className="admin-ko-toolbar" style={{ marginBottom: 16 }}>
+                <div>
+                  <h4 className="phase-title" style={{ margin: 0, border: 0, padding: 0 }}>
+                    Cuadro real del torneo
+                  </h4>
+                  <p className="muted" style={{ margin: "6px 0 0", fontSize: "0.8125rem" }}>
+                    Se actualiza según los resultados de grupos y eliminatorias que guardes.
+                  </p>
+                </div>
+                <div className="admin-ko-mode-toggle">
                   <button
-                    key={round}
                     type="button"
-                    className={`subtab-button ${activeKnockoutRound === round ? "active" : ""}`}
-                    onClick={() => setActiveKnockoutRound(round)}
+                    className={`subtab-button ${realResultsKnockoutMode === "cuadro" ? "active" : ""}`}
+                    onClick={() => setRealResultsKnockoutMode("cuadro")}
                   >
-                    {round.replace(" de final", "").replace("Dieciseisavos", "1/16").replace("Octavos", "1/8").replace("Cuartos", "1/4")}
+                    Esquema
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    className={`subtab-button ${realResultsKnockoutMode === "rondas" ? "active" : ""}`}
+                    onClick={() => setRealResultsKnockoutMode("rondas")}
+                  >
+                    Introducir por ronda
+                  </button>
+                </div>
               </div>
 
-              {knockoutRounds.map((roundName) => {
-                const matchesInRound = knockoutMatchesByPhase[roundName] ?? [];
-                return (
-                  <div key={roundName} className="phase-group" style={{ display: activeKnockoutRound === roundName ? "block" : "none" }}>
-                    <h3 className="phase-title">{roundName}</h3>
-                    <section className="panel">
-                      {matchesInRound.length === 0 ? (
-                        <div style={{ padding: "24px", textAlign: "center" }} className="muted">
-                          No hay partidos cargados para esta ronda.
-                        </div>
-                      ) : (
-                        matchesInRound.map((match) => {
-                          const score = realScores[match.id];
-                          const isDraw = score && score.home !== "" && score.away !== "" && Number(score.home) === Number(score.away);
-                          const homeTeamObj = teams.find((t) => t.canonical_name === match.home_team_name);
-                          const awayTeamObj = teams.find((t) => t.canonical_name === match.away_team_name);
-
-                          return (
-                            <div className="match-row" key={match.id} style={{ gridTemplateColumns: "1fr 88px 88px 120px", gap: "16px" }}>
-                              <div className="team-names">
-                                <strong>{match.home_team_name ?? "Por decidir"}</strong>
-                                <span className="muted">vs</span>
-                                <strong>{match.away_team_name ?? "Por decidir"}</strong>
-                              </div>
-                              <input
-                                aria-label={`Goles real local ${match.id}`}
-                                min={0}
-                                type="number"
-                                placeholder="Goles"
-                                value={realScores[match.id]?.home ?? ""}
-                                onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
-                              />
-                              <input
-                                aria-label={`Goles real visitante ${match.id}`}
-                                min={0}
-                                type="number"
-                                placeholder="Goles"
-                                value={realScores[match.id]?.away ?? ""}
-                                onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
-                              />
-                              <button
-                                type="button"
-                                className="button primary"
-                                style={{ minHeight: "44px" }}
-                                disabled={savingId === match.id}
-                                onClick={() => saveMatchResult(match.id)}
-                              >
-                                {savingId === match.id ? "Guardando..." : "Guardar"}
-                              </button>
-
-                              {isDraw && homeTeamObj && awayTeamObj && (
-                                <div className="penalty-selector" style={{ gridColumn: "1 / span 4", marginTop: "8px" }}>
-                                  <span className="penalty-title">Ganador Real en Penaltis:</span>
-                                  <div className="penalty-actions">
-                                    <button
-                                      type="button"
-                                      className={`penalty-pill ${realScores[match.id]?.winner === homeTeamObj.id ? "active" : ""}`}
-                                      onClick={() => handleScoreChange(match.id, "winner", String(homeTeamObj.id))}
-                                    >
-                                      {match.home_team_name}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={`penalty-pill ${realScores[match.id]?.winner === awayTeamObj.id ? "active" : ""}`}
-                                      onClick={() => handleScoreChange(match.id, "winner", String(awayTeamObj.id))}
-                                    >
-                                      {match.away_team_name}
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </section>
+              {realResultsKnockoutMode === "cuadro" && (
+                <div className="bracket-viewport" style={{ marginBottom: 24 }}>
+                  <p className="bracket-viewport-hint muted">
+                    Cuadro oficial según resultados reales. Desplaza dentro del recuadro; arriba puedes seguir
+                    editando partido a partido en «Introducir por ronda».
+                  </p>
+                  <div className="bracket-wrapper bracket-wrapper--embedded">
+                    <RealKnockoutBracket
+                      resolved={realKnockoutBracket.resolved}
+                      scores={realScores}
+                      teams={teams}
+                      getWinnerTeamId={getRealWinnerTeamId}
+                    />
                   </div>
-                );
-              })}
+                </div>
+              )}
+
+              {realResultsKnockoutMode === "rondas" && (
+                <>
+                  <div className="subtabs-container">
+                    {knockoutRounds.map((round) => (
+                      <button
+                        key={round}
+                        type="button"
+                        className={`subtab-button ${activeKnockoutRound === round ? "active" : ""}`}
+                        onClick={() => setActiveKnockoutRound(round)}
+                      >
+                        {round.replace(" de final", "").replace("Dieciseisavos", "1/16").replace("Octavos", "1/8").replace("Cuartos", "1/4")}
+                      </button>
+                    ))}
+                  </div>
+
+                  {knockoutRounds.map((roundName) => {
+                    const matchesInRound = knockoutMatchesByPhase[roundName] ?? [];
+                    return (
+                      <div key={roundName} className="phase-group" style={{ display: activeKnockoutRound === roundName ? "block" : "none" }}>
+                        <h3 className="phase-title">{roundName}</h3>
+                        <section className="panel admin-ko-list">
+                          {matchesInRound.length === 0 ? (
+                            <div style={{ padding: "24px", textAlign: "center" }} className="muted">
+                              No hay partidos cargados para esta ronda.
+                            </div>
+                          ) : (
+                            matchesInRound
+                              .sort((a, b) => a.id - b.id)
+                              .map((match) => {
+                                const score = realScores[match.id];
+                                const isDraw = score && score.home !== "" && score.away !== "" && Number(score.home) === Number(score.away);
+                                const resolvedHome = realKnockoutBracket.resolved[match.id]?.home ?? match.home_team_name ?? "Por decidir";
+                                const resolvedAway = realKnockoutBracket.resolved[match.id]?.away ?? match.away_team_name ?? "Por decidir";
+                                const homeTeamObj = teams.find((t) => t.canonical_name === resolvedHome);
+                                const awayTeamObj = teams.find((t) => t.canonical_name === resolvedAway);
+
+                                return (
+                                  <div className="match-row admin-result-entry" key={`entry-${match.id}`} style={{ gridTemplateColumns: "1fr 88px 88px 120px", gap: "16px" }}>
+                                    <div className="team-names">
+                                      <strong>{resolvedHome}</strong>
+                                      <span className="muted">vs</span>
+                                      <strong>{resolvedAway}</strong>
+                                      <span className="admin-ko-row__id" style={{ marginTop: 4 }}>M{match.id}</span>
+                                    </div>
+                                    <input
+                                      aria-label={`Goles real local ${match.id}`}
+                                      min={0}
+                                      type="number"
+                                      placeholder="Goles"
+                                      value={realScores[match.id]?.home ?? ""}
+                                      onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
+                                    />
+                                    <input
+                                      aria-label={`Goles real visitante ${match.id}`}
+                                      min={0}
+                                      type="number"
+                                      placeholder="Goles"
+                                      value={realScores[match.id]?.away ?? ""}
+                                      onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
+                                    />
+                                    <button
+                                      type="button"
+                                      className="button primary"
+                                      style={{ minHeight: "44px" }}
+                                      disabled={savingId === match.id}
+                                      onClick={() => saveMatchResult(match.id)}
+                                    >
+                                      {savingId === match.id ? "Guardando..." : "Guardar"}
+                                    </button>
+
+                                    {isDraw && homeTeamObj && awayTeamObj && (
+                                      <div className="penalty-selector" style={{ gridColumn: "1 / span 4", marginTop: "8px" }}>
+                                        <span className="penalty-title">Ganador Real en Penaltis:</span>
+                                        <div className="penalty-actions">
+                                          <button
+                                            type="button"
+                                            className={`penalty-pill ${realScores[match.id]?.winner === homeTeamObj.id ? "active" : ""}`}
+                                            onClick={() => handleScoreChange(match.id, "winner", String(homeTeamObj.id))}
+                                          >
+                                            {resolvedHome}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className={`penalty-pill ${realScores[match.id]?.winner === awayTeamObj.id ? "active" : ""}`}
+                                            onClick={() => handleScoreChange(match.id, "winner", String(awayTeamObj.id))}
+                                          >
+                                            {resolvedAway}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })
+                          )}
+                        </section>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
             </div>
 
             {/* Premios Oficiales */}
@@ -769,375 +684,6 @@ export function AdminForm({
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════ SECCIÓN 3: APUESTAS DE JUGADORES ════════════════ */}
-        {currentSection === "jugadores" && (
-          <div>
-            <div className="panel" style={{ padding: "20px", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-              <div>
-                <h3 style={{ margin: 0, color: "var(--accent)" }}>Consultar apuestas de jugadores</h3>
-                <p className="muted" style={{ margin: "4px 0 0 0", fontSize: "14px" }}>Selecciona un jugador para ver toda su porra simulada y premios especiales.</p>
-              </div>
-              <select
-                value={selectedPlayerId}
-                onChange={(e) => setSelectedPlayerId(Number(e.target.value))}
-                style={{ maxWidth: "260px", fontWeight: "700" }}
-              >
-                {players.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.display_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Premios Especiales del Jugador Seleccionado */}
-            <h4 className="phase-title">Premios Especiales de {players.find(p => p.id === selectedPlayerId)?.display_name}</h4>
-            <section className="panel" style={{ marginBottom: "24px", padding: "16px 20px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-                <div>
-                  <span className="muted" style={{ fontSize: "12px", textTransform: "uppercase" }}>Campeón del Mundo:</span>
-                  <p style={{ margin: "6px 0 0 0", fontSize: "16px", fontWeight: "700", color: "var(--gold)" }}>
-                    {teams.find((t) => t.id === selectedPlayerSpecial?.champion_team_id)?.canonical_name ?? "No pronosticado"}
-                  </p>
-                </div>
-                <div>
-                  <span className="muted" style={{ fontSize: "12px", textTransform: "uppercase" }}>Máximo Goleador:</span>
-                  <p style={{ margin: "6px 0 0 0", fontSize: "16px", fontWeight: "700" }}>
-                    {selectedPlayerSpecial?.top_scorer_name ?? "No pronosticado"}
-                  </p>
-                </div>
-                <div>
-                  <span className="muted" style={{ fontSize: "12px", textTransform: "uppercase" }}>Balón de Oro:</span>
-                  <p style={{ margin: "6px 0 0 0", fontSize: "16px", fontWeight: "700" }}>
-                    {selectedPlayerSpecial?.golden_ball_name ?? "No pronosticado"}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Fase de Grupos del Jugador Seleccionado */}
-            <h4 className="phase-title">Pronósticos de Fase de Grupos</h4>
-            <div className="subtabs-container">
-              {groupCodes.map((g) => (
-                <button key={g} type="button" className={`subtab-button ${activeViewerGroup === g ? "active" : ""}`} onClick={() => setActiveViewerGroup(g)}>
-                  Grupo {g}
-                </button>
-              ))}
-            </div>
-
-            {groupCodes.map((groupCode) => {
-              const groupMatches = getMatchesForGroup(groupCode);
-              return (
-                <div key={groupCode} style={{ display: activeViewerGroup === groupCode ? "block" : "none" }}>
-                  <section className="panel" style={{ marginBottom: "24px" }}>
-                    {groupMatches.map((match) => {
-                      const pred = selectedPlayerPredictions.find((p) => p.match_id === match.id);
-                      return (
-                        <div className="match-row" key={match.id} style={{ gridTemplateColumns: "1fr auto" }}>
-                          <div className="team-names">
-                            <strong>{match.home_team_name}</strong>
-                            <span className="muted">vs</span>
-                            <strong>{match.away_team_name}</strong>
-                          </div>
-                          <div style={{ display: "flex", gap: "10px", fontSize: "18px", fontWeight: "800", paddingRight: "16px" }}>
-                            <span style={{ color: "var(--accent)" }}>{pred?.predicted_home_goals !== null ? pred?.predicted_home_goals : "-"}</span>
-                            <span className="muted">:</span>
-                            <span style={{ color: "var(--accent)" }}>{pred?.predicted_away_goals !== null ? pred?.predicted_away_goals : "-"}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </section>
-                </div>
-              );
-            })}
-
-            {/* Cuadro de Eliminatorias del Jugador Seleccionado */}
-            <h4 className="phase-title">Cuadro de Eliminatorias Simulado</h4>
-            <div className="bracket-wrapper">
-              <div className="bracket-grid">
-                
-                {/* Lado Izquierdo del Cuadro */}
-                <div className="bracket-side bracket-side-left">
-                  <div className="bracket-column">
-                    <h4 className="bracket-col-title">1/16 Izq.</h4>
-                    {[73, 75, 74, 77, 76, 78, 79, 80].map((id) => {
-                      const match = matches.find((m) => m.id === id);
-                      const pred = selectedPlayerPredictions.find((p) => p.match_id === id);
-                      const resolvedHome = playerSimulatedBracket.resolved[id]?.home ?? "Por decidir";
-                      const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
-                      const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
-                      const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
-
-                      return (
-                        <div className="bracket-card" key={id} style={{ opacity: isResolved(resolvedHome) ? 1 : 0.4 }}>
-                          <div className="bracket-card-header">P. {id}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedHome} {isHomeWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_home_goals ?? "-"}</strong>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isAwayWinner ? "800" : "600", color: isAwayWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedAway} {isAwayWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_away_goals ?? "-"}</strong>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="bracket-column">
-                    <h4 className="bracket-col-title">1/8 Izq.</h4>
-                    {[89, 90, 91, 92].map((id) => {
-                      const match = matches.find((m) => m.id === id);
-                      const pred = selectedPlayerPredictions.find((p) => p.match_id === id);
-                      const resolvedHome = playerSimulatedBracket.resolved[id]?.home ?? "Por decidir";
-                      const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
-                      const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
-                      const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
-
-                      return (
-                        <div className="bracket-card" key={id} style={{ opacity: isResolved(resolvedHome) ? 1 : 0.4 }}>
-                          <div className="bracket-card-header">P. {id}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedHome} {isHomeWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_home_goals ?? "-"}</strong>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isAwayWinner ? "800" : "600", color: isAwayWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedAway} {isAwayWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_away_goals ?? "-"}</strong>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="bracket-column">
-                    <h4 className="bracket-col-title">1/4 Izq.</h4>
-                    {[97, 99].map((id) => {
-                      const match = matches.find((m) => m.id === id);
-                      const pred = selectedPlayerPredictions.find((p) => p.match_id === id);
-                      const resolvedHome = playerSimulatedBracket.resolved[id]?.home ?? "Por decidir";
-                      const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
-                      const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
-                      const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
-
-                      return (
-                        <div className="bracket-card" key={id} style={{ opacity: isResolved(resolvedHome) ? 1 : 0.4 }}>
-                          <div className="bracket-card-header">P. {id}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedHome} {isHomeWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_home_goals ?? "-"}</strong>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isAwayWinner ? "800" : "600", color: isAwayWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedAway} {isAwayWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_away_goals ?? "-"}</strong>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Columna Central (Semifinales, Finales y Campeón) */}
-                <div className="bracket-center-column">
-                  <div className="bracket-center-section">
-                    <h4 className="bracket-col-title">Semifinales</h4>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "24px", alignItems: "center", width: "100%" }}>
-                      {[101, 102].map((id) => {
-                        const pred = selectedPlayerPredictions.find((p) => p.match_id === id);
-                        const resolvedHome = playerSimulatedBracket.resolved[id]?.home ?? "Por decidir";
-                        const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
-                        const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
-                        const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
-
-                        return (
-                          <div className="bracket-card" key={id} style={{ width: "100%", opacity: isResolved(resolvedHome) ? 1 : 0.4 }}>
-                            <div className="bracket-card-header">P. {id}</div>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontSize: "11px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--gold)" : "inherit" }}>
-                                {resolvedHome} {isHomeWinner && "🏆"}
-                              </span>
-                              <strong>{pred?.predicted_home_goals ?? "-"}</strong>
-                            </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontSize: "11px", fontWeight: isAwayWinner ? "800" : "600", color: isAwayWinner ? "var(--gold)" : "inherit" }}>
-                                {resolvedAway} {isAwayWinner && "🏆"}
-                              </span>
-                              <strong>{pred?.predicted_away_goals ?? "-"}</strong>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tarjeta del Campeón Simulado */}
-                  <div className="bracket-center-section champion-section">
-                    <h4 className="bracket-col-title" style={{ color: "var(--gold)" }}>Simulación Campeón</h4>
-                    <div className="champion-card" style={{ padding: "16px 12px", minWidth: "180px" }}>
-                      <div className="trophy-glow" style={{ fontSize: "30px" }}>🏆</div>
-                      <strong className={isResolved(playerSimulatedBracket.resolved[104]?.home) ? "champion-name resolved" : "champion-name pending"} style={{ fontSize: "14px" }}>
-                        {(() => {
-                          const pred = selectedPlayerPredictions.find((p) => p.match_id === 104);
-                          const resHome = playerSimulatedBracket.resolved[104]?.home;
-                          const resAway = playerSimulatedBracket.resolved[104]?.away;
-                          if (!isResolved(resHome) || !isResolved(resAway) || !pred || pred.predicted_home_goals === null) return "Por decidir";
-                          
-                          const hg = Number(pred.predicted_home_goals);
-                          const ag = Number(pred.predicted_away_goals);
-                          if (hg > ag) return resHome;
-                          if (hg < ag) return resAway;
-                          
-                          const winnerObj = teams.find((t) => t.id === pred.predicted_winner_team_id);
-                          return winnerObj?.canonical_name ?? resHome;
-                        })()}
-                      </strong>
-                    </div>
-                  </div>
-
-                  {/* Finales y Tercer Puesto */}
-                  <div className="bracket-center-section">
-                    <h4 className="bracket-col-title">Finales</h4>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "20px", width: "100%" }}>
-                      {[104, 103].map((id) => {
-                        const pred = selectedPlayerPredictions.find((p) => p.match_id === id);
-                        const resolvedHome = playerSimulatedBracket.resolved[id]?.home ?? "Por decidir";
-                        const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
-                        const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
-                        const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
-
-                        return (
-                          <div className="bracket-card" key={id} style={{ width: "100%", opacity: isResolved(resolvedHome) ? 1 : 0.4 }}>
-                            <div className="bracket-card-header">{id === 104 ? "Gran Final" : "3º Puesto"}</div>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontSize: "11px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--gold)" : "inherit" }}>
-                                {resolvedHome} {isHomeWinner && "🏆"}
-                              </span>
-                              <strong>{pred?.predicted_home_goals ?? "-"}</strong>
-                            </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontSize: "11px", fontWeight: isAwayWinner ? "800" : "600", color: isAwayWinner ? "var(--gold)" : "inherit" }}>
-                                {resolvedAway} {isAwayWinner && "🏆"}
-                              </span>
-                              <strong>{pred?.predicted_away_goals ?? "-"}</strong>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Lado Derecho del Cuadro */}
-                <div className="bracket-side bracket-side-right">
-                  <div className="bracket-column">
-                    <h4 className="bracket-col-title">1/4 Der.</h4>
-                    {[98, 100].map((id) => {
-                      const match = matches.find((m) => m.id === id);
-                      const pred = selectedPlayerPredictions.find((p) => p.match_id === id);
-                      const resolvedHome = playerSimulatedBracket.resolved[id]?.home ?? "Por decidir";
-                      const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
-                      const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
-                      const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
-
-                      return (
-                        <div className="bracket-card" key={id} style={{ opacity: isResolved(resolvedHome) ? 1 : 0.4 }}>
-                          <div className="bracket-card-header">P. {id}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedHome} {isHomeWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_home_goals ?? "-"}</strong>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isAwayWinner ? "800" : "600", color: isAwayWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedAway} {isAwayWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_away_goals ?? "-"}</strong>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="bracket-column">
-                    <h4 className="bracket-col-title">1/8 Der.</h4>
-                    {[93, 94, 95, 96].map((id) => {
-                      const match = matches.find((m) => m.id === id);
-                      const pred = selectedPlayerPredictions.find((p) => p.match_id === id);
-                      const resolvedHome = playerSimulatedBracket.resolved[id]?.home ?? "Por decidir";
-                      const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
-                      const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
-                      const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
-
-                      return (
-                        <div className="bracket-card" key={id} style={{ opacity: isResolved(resolvedHome) ? 1 : 0.4 }}>
-                          <div className="bracket-card-header">P. {id}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedHome} {isHomeWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_home_goals ?? "-"}</strong>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isAwayWinner ? "800" : "600", color: isAwayWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedAway} {isAwayWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_away_goals ?? "-"}</strong>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="bracket-column">
-                    <h4 className="bracket-col-title">1/16 Der.</h4>
-                    {[83, 84, 81, 82, 86, 88, 85, 87].map((id) => {
-                      const match = matches.find((m) => m.id === id);
-                      const pred = selectedPlayerPredictions.find((p) => p.match_id === id);
-                      const resolvedHome = playerSimulatedBracket.resolved[id]?.home ?? "Por decidir";
-                      const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
-                      const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
-                      const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
-
-                      return (
-                        <div className="bracket-card" key={id} style={{ opacity: isResolved(resolvedHome) ? 1 : 0.4 }}>
-                          <div className="bracket-card-header">P. {id}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedHome} {isHomeWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_home_goals ?? "-"}</strong>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", fontWeight: isAwayWinner ? "800" : "600", color: isAwayWinner ? "var(--gold)" : "inherit" }}>
-                              {resolvedAway} {isAwayWinner && "🏆"}
-                            </span>
-                            <strong>{pred?.predicted_away_goals ?? "-"}</strong>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-              </div>
             </div>
           </div>
         )}

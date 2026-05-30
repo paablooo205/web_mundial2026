@@ -10,30 +10,31 @@ export default function EnterCodePage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const cleanCode = code.trim().toUpperCase();
+    const cleanCode = code.trim();
     if (!cleanCode) {
       setError("Por favor, introduce tu código de acceso.");
       return;
     }
-    router.push(`/predicciones/${cleanCode}`);
+    router.push(`/predicciones/${encodeURIComponent(cleanCode)}`);
   }
 
   return (
-    <main className="page" style={{ maxWidth: "480px", marginTop: "40px" }}>
-      <div className="panel" style={{ padding: "32px", display: "grid", gap: "24px" }}>
-        <div style={{ textAlign: "center" }}>
-          <h1 style={{ fontSize: "28px", marginBottom: "8px" }}>Tus Apuestas</h1>
-          <p className="muted" style={{ fontSize: "14px", margin: 0 }}>
-            Introduce tu código privado de jugador para ver y rellenar tu porra.
+    <main className="page page--narrow">
+      <div className="panel auth-panel">
+        <div className="auth-panel__head">
+          <h1>Tus apuestas</h1>
+          <p className="muted" style={{ fontSize: "0.875rem", margin: 0 }}>
+            Introduce tu código privado para ver y rellenar tu porra.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
+        <form onSubmit={handleSubmit} className="form-stack">
           <div>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", fontSize: "14px" }}>
-              Código de Acceso
+            <label className="form-label" htmlFor="access-code">
+              Código de acceso
             </label>
             <input
+              id="access-code"
               aria-label="Código de acceso de jugador"
               type="text"
               value={code}
@@ -41,25 +42,21 @@ export default function EnterCodePage() {
                 setCode(e.target.value);
                 setError(null);
               }}
-              placeholder="Ej: JUGADOR1"
-              style={{ textAlign: "center", letterSpacing: "0.1em", fontWeight: "700" }}
+              placeholder="juanmizo_marcaico"
+              className="input--code"
+              autoComplete="off"
+              spellCheck={false}
             />
-            {error && (
-              <p style={{ color: "var(--danger)", fontSize: "13px", marginTop: "8px", marginBottom: 0 }}>
-                {error}
-              </p>
-            )}
+            {error && <p className="form-error">{error}</p>}
           </div>
 
           <button className="button primary" type="submit" style={{ width: "100%" }}>
-            Acceder al Formulario
+            Entrar
           </button>
         </form>
 
-        <div style={{ textAlign: "center", borderTop: "1px solid var(--line)", paddingTop: "16px" }}>
-          <p className="muted" style={{ fontSize: "12px", margin: 0 }}>
-            ¿No tienes tu código? Consúltalo con el administrador.
-          </p>
+        <div className="auth-panel__foot">
+          <p className="muted">¿No tienes código? Pide uno al administrador.</p>
         </div>
       </div>
     </main>

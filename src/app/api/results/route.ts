@@ -5,7 +5,19 @@ import { recalculateStandings } from "@/lib/standings";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { matchId, homeGoals, awayGoals, status, winnerTeamId, championTeamId, topScorerName, goldenBallName, type } = body;
+    const {
+      matchId,
+      homeGoals,
+      awayGoals,
+      status,
+      winnerTeamId,
+      homeTeamId,
+      awayTeamId,
+      championTeamId,
+      topScorerName,
+      goldenBallName,
+      type
+    } = body;
 
     const supabase = createServiceClient();
 
@@ -41,6 +53,20 @@ export async function POST(request: Request) {
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+
+      if (homeTeamId && awayTeamId) {
+        const { error: matchTeamsError } = await supabase
+          .from("matches")
+          .update({
+            home_team_id: Number(homeTeamId),
+            away_team_id: Number(awayTeamId)
+          })
+          .eq("id", Number(matchId));
+
+        if (matchTeamsError) {
+          return NextResponse.json({ error: matchTeamsError.message }, { status: 400 });
+        }
       }
     }
 

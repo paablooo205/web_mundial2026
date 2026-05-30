@@ -4,9 +4,8 @@ export type StandingRow = {
   total_points: number;
   exact_scores: number;
   correct_signs: number;
-  champion_hit: boolean;
-  top_scorer_hit: boolean;
-  golden_ball_hit: boolean;
+  goal_difference_hits: number;
+  advancement_hits: number;
   position: number | null;
 };
 

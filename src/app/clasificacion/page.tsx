@@ -1,6 +1,11 @@
 import { getPublicStandings } from "@/lib/queries";
+import { PlayerAvatar } from "./player-avatar";
 
 export const revalidate = 30;
+
+function signHitsOnly(exactScores: number, correctSigns: number) {
+  return Math.max(0, correctSigns - exactScores);
+}
 
 export default async function ClasificacionPage() {
   const standings = await getPublicStandings();
@@ -10,7 +15,9 @@ export default async function ClasificacionPage() {
       <div className="page-header">
         <div>
           <h1>Clasificación</h1>
-          <p className="muted">Actualizada automáticamente cuando entren nuevos resultados.</p>
+          <p className="muted" style={{ margin: 0, fontSize: "0.9375rem" }}>
+            Actualizada cuando entran nuevos resultados.
+          </p>
         </div>
         <span className="status-pill">Pública</span>
       </div>
@@ -22,37 +29,45 @@ export default async function ClasificacionPage() {
               <th>Pos</th>
               <th>Jugador</th>
               <th>Puntos</th>
-              <th>Exactos</th>
-              <th>Signos</th>
-              <th>Campeon</th>
-              <th>Goleador</th>
-              <th>Balon de oro</th>
+              <th title="Marcador exacto (+5)">Exactos</th>
+              <th title="1 / X / 2 acertado sin pleno (+2)">Signos</th>
+              <th title="Diferencia de goles sin pleno (+1)">Difs.</th>
+              <th title="Equipo que acertaste que avanza en cuartos, semifinales o final (+3)">Clasif.</th>
             </tr>
           </thead>
           <tbody>
             {standings.map((row, index) => (
               <tr key={row.player_id}>
                 <td>
-                  <span className={`rank ${index < 3 ? 'rank-' + (index + 1) : ''}`}>
+                  <span className={`rank ${index < 3 ? "rank-" + (index + 1) : ""}`}>
                     {row.position ?? index + 1}
                   </span>
                 </td>
-                <td>{row.display_name}</td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <PlayerAvatar name={row.display_name} />
+                    <span style={{ fontWeight: 500 }}>{row.display_name}</span>
+                  </div>
+                </td>
                 <td>{row.total_points}</td>
                 <td>{row.exact_scores}</td>
-                <td>{row.correct_signs}</td>
-                <td>{row.champion_hit ? "Sí" : "-"}</td>
-                <td>{row.top_scorer_hit ? "Sí" : "-"}</td>
-                <td>{row.golden_ball_hit ? "Sí" : "-"}</td>
+                <td>{signHitsOnly(row.exact_scores, row.correct_signs)}</td>
+                <td>{row.goal_difference_hits ?? 0}</td>
+                <td>{row.advancement_hits ?? 0}</td>
               </tr>
             ))}
             {standings.length === 0 ? (
               <tr>
-                <td colSpan={8}>Todavia no hay jugadores cargados.</td>
+                <td colSpan={7}>Todavia no hay jugadores cargados.</td>
               </tr>
             ) : null}
           </tbody>
         </table>
+        <p className="muted table-legend">
+          Fase de grupos y dieciseisavos/octavos: exactos, signos y diferencias. Desde cuartos: además{" "}
+          <strong>Clasif.</strong> (+3 si acertaste qué equipo avanza). El marcador solo puntúa si el cruce real
+          coincide con tu cuadro (mismos dos equipos). Campeón, goleador y balón de oro suman al total sin mostrarse aquí.
+        </p>
       </div>
     </main>
   );

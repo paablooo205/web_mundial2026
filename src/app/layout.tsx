@@ -3,6 +3,8 @@ import { Outfit } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
+import { HeaderClient } from "./header-client";
+
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
@@ -19,19 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" className={outfit.variable}>
       <body>
         <div className="shell">
-          <header className="topbar">
-            <div className="topbar-content">
-              <Link className="brand" href="/clasificacion">
-                <strong>{process.env.NEXT_PUBLIC_APP_NAME ?? "Porra Mundial 2026"}</strong>
-                <span>Clasificación, apuestas y resultados</span>
-              </Link>
-              <nav className="nav" aria-label="Navegacion">
-                <Link href="/clasificacion">Clasificación</Link>
-                <Link href="/predicciones">Club Selecto</Link>
-                <Link href="/admin">Admin</Link>
-              </nav>
-            </div>
-          </header>
+          <HeaderClient />
           {children}
         </div>
       </body>

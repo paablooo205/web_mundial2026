@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getPlayerEntryData } from "@/lib/queries";
 import { PredictionForm } from "./prediction-form";
+import { ProfileAvatar } from "./profile-avatar";
 
 type PageProps = {
   params: Promise<{ code: string }>;
@@ -23,7 +24,10 @@ export default async function PredictionPage({ params }: PageProps) {
           <h1>Predicciones</h1>
           <p className="muted">Jugador: {data.player.display_name}</p>
         </div>
-        <span className="status-pill">{data.locked ? "Bloqueado" : "Editable"}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <span className="status-pill">{data.locked ? "Bloqueado" : "Editable"}</span>
+          <ProfileAvatar />
+        </div>
       </div>
       <PredictionForm
         player={data.player}

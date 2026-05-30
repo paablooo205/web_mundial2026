@@ -12,6 +12,8 @@ export type ScoringConfig = {
   exactScore: number;
   correctSign: number;
   goalDifference: number;
+  /** Equipo que acertaste que avanza (cuartos, semifinales, final). */
+  advancementPoints: number;
   champion: number;
   topScorer: number;
   goldenBall: number;
@@ -21,6 +23,7 @@ export const defaultScoringConfig: ScoringConfig = {
   exactScore: 5,
   correctSign: 2,
   goalDifference: 1,
+  advancementPoints: 3,
   champion: 10,
   topScorer: 5,
   goldenBall: 5
@@ -38,7 +41,7 @@ export function scoreMatch(
   config: ScoringConfig = defaultScoringConfig
 ) {
   if (prediction.predicted_home_goals === null || prediction.predicted_away_goals === null) {
-    return { points: 0, exact: false, correctSign: false };
+    return { points: 0, exact: false, correctSign: false, goalDifferenceHit: false };
   }
 
   const exact =
@@ -46,7 +49,7 @@ export function scoreMatch(
     prediction.predicted_away_goals === result.away_goals;
 
   if (exact) {
-    return { points: config.exactScore, exact: true, correctSign: true };
+    return { points: config.exactScore, exact: true, correctSign: true, goalDifferenceHit: false };
   }
 
   const correctSign =
@@ -56,12 +59,13 @@ export function scoreMatch(
   let points = correctSign ? config.correctSign : 0;
   const predictedDiff = Math.abs(prediction.predicted_home_goals - prediction.predicted_away_goals);
   const resultDiff = Math.abs(result.home_goals - result.away_goals);
+  const goalDifferenceHit = correctSign && predictedDiff === resultDiff;
 
-  if (predictedDiff === resultDiff) {
+  if (goalDifferenceHit) {
     points += config.goalDifference;
   }
 
-  return { points, exact: false, correctSign };
+  return { points, exact: false, correctSign, goalDifferenceHit };
 }
 
 export function normalizePersonName(value: string | null | undefined) {

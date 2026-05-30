@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isDoubleScoringPhase } from "./knockout-scoring";
 import { createServiceClient } from "./supabase";
 
 const baseSchema = z.object({
@@ -8,6 +9,37 @@ const baseSchema = z.object({
   topScorerName: z.string().optional(),
   goldenBallName: z.string().optional()
 });
+
+type PredictionRow = {
+  player_id: number;
+  match_id: number;
+  predicted_home_goals: number | null;
+  predicted_away_goals: number | null;
+  predicted_winner_team_id: number | null;
+  predicted_home_team_id: number | null;
+  predicted_away_team_id: number | null;
+};
+
+function getOrCreatePredictionRow(
+  predictions: PredictionRow[],
+  playerId: number,
+  matchId: number
+) {
+  let row = predictions.find((item) => item.match_id === matchId);
+  if (!row) {
+    row = {
+      player_id: playerId,
+      match_id: matchId,
+      predicted_home_goals: null,
+      predicted_away_goals: null,
+      predicted_winner_team_id: null,
+      predicted_home_team_id: null,
+      predicted_away_team_id: null
+    };
+    predictions.push(row);
+  }
+  return row;
+}
 
 export async function savePredictionsFromForm(form: FormData) {
   const raw = Object.fromEntries(form.entries());
@@ -29,34 +61,33 @@ export async function savePredictionsFromForm(form: FormData) {
     return { ok: false as const, error: "Codigo no valido" };
   }
 
-  const predictions: {
-    player_id: number;
-    match_id: number;
-    predicted_home_goals: number | null;
-    predicted_away_goals: number | null;
-    predicted_winner_team_id: number | null;
-  }[] = [];
-  for (const [key, value] of form.entries()) {
-    const match = /^match_(\d+)_(home|away)$/.exec(key);
-    if (!match || value === "") continue;
+  const { data: matches } = await supabase.from("matches").select("id, phase");
+  const phaseByMatchId = new Map((matches ?? []).map((m) => [m.id, m.phase]));
 
-    const matchId = Number(match[1]);
-    let row = predictions.find((item) => item.match_id === matchId);
-    if (!row) {
-      row = {
-        player_id: parsed.data.playerId,
-        match_id: matchId,
-        predicted_home_goals: null,
-        predicted_away_goals: null,
-        predicted_winner_team_id: null
-      };
-      predictions.push(row);
+  const predictions: PredictionRow[] = [];
+
+  for (const [key, value] of form.entries()) {
+    const scoreMatch = /^match_(\d+)_(home|away)$/.exec(key);
+    if (scoreMatch && value !== "") {
+      const matchId = Number(scoreMatch[1]);
+      const row = getOrCreatePredictionRow(predictions, parsed.data.playerId, matchId);
+      if (scoreMatch[2] === "home") row.predicted_home_goals = Number(value);
+      if (scoreMatch[2] === "away") row.predicted_away_goals = Number(value);
+      continue;
     }
-    if (match[2] === "home") row.predicted_home_goals = Number(value);
-    if (match[2] === "away") row.predicted_away_goals = Number(value);
+
+    const teamMatch = /^match_(\d+)_(home|away)_team_id$/.exec(key);
+    if (teamMatch && value !== "") {
+      const matchId = Number(teamMatch[1]);
+      const phase = phaseByMatchId.get(matchId);
+      if (!phase || !isDoubleScoringPhase(phase)) continue;
+
+      const row = getOrCreatePredictionRow(predictions, parsed.data.playerId, matchId);
+      if (teamMatch[2] === "home") row.predicted_home_team_id = Number(value);
+      if (teamMatch[2] === "away") row.predicted_away_team_id = Number(value);
+    }
   }
 
-  // Populate predicted_winner_team_id from form inputs
   predictions.forEach((row) => {
     const winnerVal = form.get(`match_${row.match_id}_winner`);
     if (winnerVal) {
