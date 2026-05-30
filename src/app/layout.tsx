@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 
 import { HeaderClient } from "./header-client";
 import { KickoffModal } from "./kickoff-modal";
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </div>
         <KickoffModal />
+        <Analytics />
       </body>
     </html>
   );
