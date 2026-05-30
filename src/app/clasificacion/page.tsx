@@ -1,5 +1,6 @@
 import { getPublicStandings } from "@/lib/queries";
 import { PlayerAvatar } from "./player-avatar";
+import { ScoringSystemModal } from "./scoring-system-modal";
 
 export const revalidate = 30;
 
@@ -19,7 +20,10 @@ export default async function ClasificacionPage() {
             Actualizada cuando entran nuevos resultados.
           </p>
         </div>
-        <span className="status-pill">Pública</span>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <ScoringSystemModal />
+          <span className="status-pill">Pública</span>
+        </div>
       </div>
 
       <div className="panel table-wrap">
