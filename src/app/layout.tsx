@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 
 import { HeaderClient } from "./header-client";
+import { KickoffModal } from "./kickoff-modal";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <HeaderClient />
           {children}
         </div>
+        <KickoffModal />
       </body>
     </html>
   );
