@@ -101,7 +101,7 @@ export function AdminForm({
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  const [currentSection, setCurrentSection] = useState<"resumen" | "resultados">("resumen");
+  const [currentSection, setCurrentSection] = useState<"resumen" | "resultados" | "mantenimiento">("resumen");
   const [activeTab, setActiveTab] = useState<"grupos" | "eliminatorias" | "especiales">("grupos");
   const [activeGroup, setActiveGroup] = useState<string>("A");
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<string>("Dieciseisavos de final");
@@ -129,6 +129,32 @@ export function AdminForm({
   const [savingAwards, setSavingAwards] = useState(false);
   const [syncingApify, setSyncingApify] = useState(false);
   const [globalMessage, setGlobalMessage] = useState<string | null>(null);
+  const [runningMaintenance, setRunningMaintenance] = useState<string | null>(null);
+
+  const triggerMaintenance = async (action: string) => {
+    setRunningMaintenance(action);
+    setGlobalMessage(null);
+    try {
+      const response = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setGlobalMessage(`✅ ${data.message}`);
+        if (action === "clear_cache") {
+           window.location.reload();
+        }
+      } else {
+        setGlobalMessage(`❌ Error: ${data.error}`);
+      }
+    } catch (err: any) {
+      setGlobalMessage(`❌ Error de red: ${err.message}`);
+    } finally {
+      setRunningMaintenance(null);
+    }
+  };
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -351,6 +377,13 @@ export function AdminForm({
         >
           Resultados Reales
         </button>
+        <button
+          type="button"
+          className={`admin-menu-btn ${currentSection === "mantenimiento" ? "active" : ""}`}
+          onClick={() => setCurrentSection("mantenimiento")}
+        >
+          Mantenimiento ⚙️
+        </button>
       </aside>
 
       {/* Panel de Contenido Principal */}
@@ -380,31 +413,6 @@ export function AdminForm({
                 <strong style={{ display: "block", fontSize: "32px", marginTop: "8px", fontWeight: "800" }}>{summary.results}</strong>
               </div>
             </div>
-
-            {/* Panel de Control de Sincronización */}
-            <section className="panel" style={{ padding: "24px", background: "rgba(0, 0, 0, 0.2)", borderLeft: "4px solid var(--usa-red-bright)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-                <div>
-                  <h3 style={{ margin: 0, color: "var(--usa-white)", fontSize: "18px" }}>Sincronización Automática con Flashscore</h3>
-                  <p className="muted" style={{ margin: "6px 0 0 0", fontSize: "14px" }}>
-                    Obtén goles, ganadores y estado de los partidos reales automáticamente sin meterlos a mano usando el Scraper de Apify.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="button primary"
-                  style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "46px" }}
-                  disabled={syncingApify}
-                  onClick={triggerApifySync}
-                >
-                  {syncingApify ? "Sincronizando..." : "Sincronizar en Vivo Ahora"}
-                </button>
-              </div>
-              
-              <div style={{ marginTop: "16px", borderTop: "1px solid var(--line)", paddingTop: "14px", fontSize: "12px" }}>
-                <span style={{ color: "var(--secondary)", fontWeight: "700" }}>Automatización en segundo plano (CRON):</span> Para que la porra se actualice sola durante el mundial real sin tener que pulsar este botón, puedes configurar una petición automática <code>POST</code> cada 10 minutos a <code>{CRON_SYNC_DISPLAY_URL}</code> en un servicio gratuito como <b>cron-job.org</b>. En producción define <code>NEXT_PUBLIC_APP_URL</code> en Vercel (ej. <code>https://tu-dominio.vercel.app</code>).
-              </div>
-            </section>
           </div>
         )}
 
@@ -684,6 +692,75 @@ export function AdminForm({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════ SECCIÓN 3: MANTENIMIENTO ════════════════ */}
+        {currentSection === "mantenimiento" && (
+          <div className="maintenance-section">
+            <h2 style={{ fontSize: "1.75rem", marginBottom: "24px", color: "var(--usa-white)" }}>Mantenimiento y Solución de Problemas</h2>
+            <p className="muted" style={{ marginBottom: "32px", fontSize: "1rem" }}>
+              Utiliza estas herramientas solo en caso de emergencia para forzar recalculos, limpiar la caché o resincronizar el sistema.
+            </p>
+
+            <div style={{ display: "grid", gap: "24px" }}>
+              {/* Recalcular Clasificación */}
+              <div className="panel" style={{ padding: "24px", borderLeft: "4px solid var(--usa-blue-bright)", display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ flex: "1 1 300px" }}>
+                  <h3 style={{ margin: "0 0 8px 0", fontSize: "1.15rem", color: "var(--usa-white)" }}>Recalcular Clasificación Total</h3>
+                  <p className="muted" style={{ margin: 0, fontSize: "0.9rem", lineHeight: "1.5" }}>
+                    Si los puntos de los jugadores se han desincronizado con respecto a los resultados reales (por un fallo de red o tras muchas ediciones manuales), usa este botón para borrar y volver a calcular toda la tabla de posiciones desde cero.
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  className="button primary" 
+                  style={{ minWidth: "200px" }}
+                  disabled={runningMaintenance === "recalculate_standings"}
+                  onClick={() => triggerMaintenance("recalculate_standings")}
+                >
+                  {runningMaintenance === "recalculate_standings" ? "Calculando..." : "Recalcular Ahora"}
+                </button>
+              </div>
+
+              {/* Forzar Sincronización */}
+              <div className="panel" style={{ padding: "24px", borderLeft: "4px solid #10b981", display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ flex: "1 1 300px" }}>
+                  <h3 style={{ margin: "0 0 8px 0", fontSize: "1.15rem", color: "var(--usa-white)" }}>Forzar Sincronización Automática</h3>
+                  <p className="muted" style={{ margin: 0, fontSize: "0.9rem", lineHeight: "1.5" }}>
+                    Ejecuta manualmente el Scraper de Apify para traer los últimos resultados desde Flashscore si crees que el proceso en segundo plano (Cron) ha fallado o se ha retrasado.
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  className="button primary" 
+                  style={{ minWidth: "200px", background: "#10b981", borderColor: "#10b981" }}
+                  disabled={syncingApify}
+                  onClick={triggerApifySync}
+                >
+                  {syncingApify ? "Sincronizando..." : "Sincronizar Flashscore"}
+                </button>
+              </div>
+
+              {/* Limpiar Caché */}
+              <div className="panel" style={{ padding: "24px", borderLeft: "4px solid var(--usa-red-bright)", display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ flex: "1 1 300px" }}>
+                  <h3 style={{ margin: "0 0 8px 0", fontSize: "1.15rem", color: "var(--usa-white)" }}>Purgar y Limpiar Caché de la Web</h3>
+                  <p className="muted" style={{ margin: 0, fontSize: "0.9rem", lineHeight: "1.5" }}>
+                    Si los usuarios reportan que ven resultados antiguos o la clasificación no se actualiza al recargar la página, este botón forzará a Vercel a borrar la memoria estática y regenerar la web con los datos más recientes de la base de datos.
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  className="button primary" 
+                  style={{ minWidth: "200px", background: "var(--usa-red)", borderColor: "var(--usa-red)" }}
+                  disabled={runningMaintenance === "clear_cache"}
+                  onClick={() => triggerMaintenance("clear_cache")}
+                >
+                  {runningMaintenance === "clear_cache" ? "Limpiando..." : "Limpiar Caché Global"}
+                </button>
+              </div>
             </div>
           </div>
         )}
