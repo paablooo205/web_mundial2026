@@ -73,6 +73,7 @@ export function PlayerBetsViewer({
   const [selectedPlayerId, setSelectedPlayerId] = useState<number>(players[0]?.id || 0);
   const [playerViewerTab, setPlayerViewerTab] = useState<"especiales" | "grupos" | "eliminatorias">("especiales");
   const [activeViewerGroup, setActiveViewerGroup] = useState<string>("A");
+  // Default to "rondas" for better mobile experience
   const [playerKnockoutMode, setPlayerKnockoutMode] = useState<"rondas" | "cuadro">("rondas");
   const [activeViewerKnockoutRound, setActiveViewerKnockoutRound] = useState(knockoutRounds[0]);
 

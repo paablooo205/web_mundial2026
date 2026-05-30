@@ -1400,3 +1400,122 @@ code {
     min-width: 1000px !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════
+   CLUB SELECTO - Responsive
+══════════════════════════════════════════════════════ */
+@media (max-width: 760px) {
+  /* Toolbar de selección de jugador: deja de ser sticky en móvil */
+  .admin-player-toolbar {
+    position: static !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 14px 12px !important;
+    gap: 12px !important;
+  }
+
+  .admin-player-toolbar__select {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .admin-player-toolbar__select select {
+    width: 100% !important;
+  }
+
+  /* Toolbar de KO (título + botones vista): apilados en columna */
+  .admin-ko-toolbar {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .admin-ko-mode-toggle {
+    width: 100% !important;
+  }
+
+  .admin-ko-mode-toggle .subtab-button {
+    flex: 1 !important;
+    text-align: center !important;
+  }
+
+  /* Fila de partido KO en modo lista: apilada */
+  .admin-ko-row {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+
+  .admin-ko-row__teams {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
+  .admin-ko-row__vs {
+    display: none !important;
+  }
+
+  /* Filas de partido en grupos: compactar */
+  .admin-ko-row__team {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   RESULTADO FINAL - Responsive
+══════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  /* La página de resultado final ya tiene styles jsx propias,
+     pero aseguramos el panel padre no desborde */
+  .panel[style*="padding: 50px"] {
+    padding: 30px 12px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   MANTENIMIENTO ADMIN - Responsive
+══════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .maintenance-section > div[style] > .panel {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .maintenance-section button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   GLOBAL: asegurar que no haya overflow horizontal
+══════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 1.5rem !important;
+  }
+
+  .page-header .muted {
+    font-size: 0.8125rem !important;
+  }
+
+  /* Tabs de navegación (pestañas) más compactas */
+  .tab-button {
+    padding: 7px 10px !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .subtab-button {
+    padding: 5px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Panel de mensajes globales en admin */
+  .panel strong[style] {
+    font-size: 0.85rem !important;
+    word-break: break-word !important;
+  }
+}
+
