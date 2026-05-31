@@ -6,6 +6,8 @@ import {
   isBracketSlotResolved,
   resolveKnockoutBracket
 } from "@/lib/knockout-bracket";
+import { PlayerRadarChart } from "./player-radar-chart";
+import type { StandingRow } from "@/lib/types";
 
 type Match = {
   id: number;
@@ -19,6 +21,12 @@ type Team = {
   id: number;
   canonical_name: string;
   group_code: string | null;
+};
+
+type MatchResult = {
+  match_id: number;
+  home_goals: number | null;
+  away_goals: number | null;
 };
 
 type Player = {
@@ -47,6 +55,8 @@ type Props = {
   players: Player[];
   predictions: PlayerPrediction[];
   specialPredictions: PlayerSpecialPrediction[];
+  standings?: StandingRow[];
+  results?: MatchResult[];
 };
 
 const groupCodes = [...BRACKET_GROUP_CODES];
@@ -68,10 +78,12 @@ export function PlayerBetsViewer({
   players,
   predictions,
   specialPredictions,
+  standings = [],
+  results = [],
 }: Props) {
   // Selected player for viewing predictions
   const [selectedPlayerId, setSelectedPlayerId] = useState<number>(players[0]?.id || 0);
-  const [playerViewerTab, setPlayerViewerTab] = useState<"especiales" | "grupos" | "eliminatorias">("especiales");
+  const [playerViewerTab, setPlayerViewerTab] = useState<"perfil" | "especiales" | "grupos" | "eliminatorias">("perfil");
   const [activeViewerGroup, setActiveViewerGroup] = useState<string>("A");
   // Default to "rondas" for better mobile experience
   const [playerKnockoutMode, setPlayerKnockoutMode] = useState<"rondas" | "cuadro">("rondas");
@@ -89,6 +101,94 @@ export function PlayerBetsViewer({
   const groupStageMatches = useMemo(() => {
     return matches.filter((m) => m.phase === groupStageMatchesPhase);
   }, [matches]);
+
+  const radarStats = useMemo(() => {
+    if (!standings || standings.length === 0) return null;
+
+    // 1. Puntos
+    const maxPoints = Math.max(1, ...standings.map(s => s.total_points));
+    const avgPoints = standings.reduce((sum, s) => sum + s.total_points, 0) / standings.length;
+    const pStanding = standings.find(s => s.player_id === selectedPlayerId);
+    
+    // 2. Aciertos Exactos
+    const maxExact = Math.max(1, ...standings.map(s => s.exact_scores ?? 0));
+    const avgExact = standings.reduce((sum, s) => sum + (s.exact_scores ?? 0), 0) / standings.length;
+    
+    // 3. Signos
+    const maxSigns = Math.max(1, ...standings.map(s => s.correct_signs ?? 0));
+    const avgSigns = standings.reduce((sum, s) => sum + (s.correct_signs ?? 0), 0) / standings.length;
+
+    // 4 & 5. Promedio Goles & % Empates
+    const playerStats: Record<number, { goals: number, total: number, draws: number, uniqueScores: Set<string> }> = {};
+    players.forEach(p => playerStats[p.id] = { goals: 0, total: 0, draws: 0, uniqueScores: new Set() });
+
+    predictions.forEach(p => {
+      if (p.predicted_home_goals !== null && p.predicted_away_goals !== null) {
+        if (!playerStats[p.player_id]) return;
+        const st = playerStats[p.player_id];
+        st.total++;
+        st.goals += p.predicted_home_goals + p.predicted_away_goals;
+        if (p.predicted_home_goals === p.predicted_away_goals) st.draws++;
+        st.uniqueScores.add(`${p.predicted_home_goals}-${p.predicted_away_goals}`);
+      }
+    });
+
+    let maxAvgGoals = 1, sumAvgGoals = 0, countAvgGoals = 0;
+    let maxDrawPct = 1, sumDrawPct = 0;
+    let maxUnique = 1, sumUnique = 0;
+
+    Object.values(playerStats).forEach(st => {
+      if (st.total > 0) {
+        const avg = st.goals / st.total;
+        const dpct = (st.draws / st.total) * 100;
+        const uniq = st.uniqueScores.size;
+        
+        maxAvgGoals = Math.max(maxAvgGoals, avg);
+        sumAvgGoals += avg;
+        
+        maxDrawPct = Math.max(maxDrawPct, dpct);
+        sumDrawPct += dpct;
+
+        maxUnique = Math.max(maxUnique, uniq);
+        sumUnique += uniq;
+        
+        countAvgGoals++;
+      }
+    });
+
+    const cAvgGoals = countAvgGoals > 0 ? sumAvgGoals / countAvgGoals : 1;
+    const cAvgDrawPct = countAvgGoals > 0 ? sumDrawPct / countAvgGoals : 1;
+    const cAvgUnique = countAvgGoals > 0 ? sumUnique / countAvgGoals : 1;
+
+    const pSt = playerStats[selectedPlayerId] || { goals: 0, total: 0, draws: 0, uniqueScores: new Set() };
+    const pAvgGoals = pSt.total > 0 ? pSt.goals / pSt.total : 0;
+    const pDrawPct = pSt.total > 0 ? (pSt.draws / pSt.total) * 100 : 0;
+    const pUnique = pSt.uniqueScores.size;
+
+    // Build axes (scale 0-100)
+    // We add a min base (e.g. 15) so the polygon doesn't collapse to 0 completely, looks better.
+    const normalize = (val: number, max: number) => Math.max(15, (val / max) * 100);
+
+    const playerAxes = [
+      { label: "Puntuación", value: normalize(pStanding?.total_points || 0, maxPoints) },
+      { label: "Plenos", value: normalize(pStanding?.exact_scores || 0, maxExact) },
+      { label: "Acierto 1X2", value: normalize(pStanding?.correct_signs || 0, maxSigns) },
+      { label: "Goles (Ofensivo)", value: normalize(pAvgGoals, maxAvgGoals) },
+      { label: "Factor Suizo", value: normalize(pDrawPct, maxDrawPct) },
+      { label: "Originalidad", value: normalize(pUnique, maxUnique) },
+    ];
+
+    const avgAxes = [
+      { label: "Puntuación", value: normalize(avgPoints, maxPoints) },
+      { label: "Plenos", value: normalize(avgExact, maxExact) },
+      { label: "Acierto 1X2", value: normalize(avgSigns, maxSigns) },
+      { label: "Goles (Ofensivo)", value: normalize(cAvgGoals, maxAvgGoals) },
+      { label: "Factor Suizo", value: normalize(cAvgDrawPct, maxDrawPct) },
+      { label: "Originalidad", value: normalize(cAvgUnique, maxUnique) },
+    ];
+
+    return { playerAxes, avgAxes, pStanding, pAvgGoals, pDrawPct, pUnique, maxPoints };
+  }, [standings, players, predictions, selectedPlayerId]);
 
   const getMatchesForGroup = (groupCode: string) => {
     const groupTeamNames = new Set(
@@ -210,6 +310,13 @@ export function PlayerBetsViewer({
       <div className="tabs-container admin-player-tabs" style={{ marginBottom: "8px" }}>
         <button
           type="button"
+          className={`tab-button ${playerViewerTab === "perfil" ? "active" : ""}`}
+          onClick={() => setPlayerViewerTab("perfil")}
+        >
+          Perfil
+        </button>
+        <button
+          type="button"
           className={`tab-button ${playerViewerTab === "especiales" ? "active" : ""}`}
           onClick={() => setPlayerViewerTab("especiales")}
         >
@@ -230,6 +337,58 @@ export function PlayerBetsViewer({
           Eliminatorias
         </button>
       </div>
+
+      {/* Pestaña: Perfil */}
+      {playerViewerTab === "perfil" && radarStats && (
+        <div style={{ animation: "fadeIn 0.3s ease-out" }}>
+          <h4 className="phase-title" style={{ marginBottom: "16px", paddingLeft: "12px", borderLeft: "3px solid var(--usa-blue-bright)" }}>
+            Análisis de {selectedPlayerName}
+          </h4>
+          <section className="panel" style={{ padding: "32px 24px", display: "flex", flexWrap: "wrap", gap: "40px", alignItems: "center", justifyContent: "center" }}>
+            
+            <div style={{ flex: "0 0 auto" }}>
+              <PlayerRadarChart axes={radarStats.playerAxes} avgAxes={radarStats.avgAxes} size={280} />
+            </div>
+
+            <div style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div>
+                <h5 style={{ margin: "0 0 8px 0", color: "var(--usa-white)", fontSize: "1.1rem" }}>Resumen Estadístico</h5>
+                <p className="muted" style={{ margin: 0, fontSize: "0.9rem", lineHeight: "1.5" }}>
+                  Comparativa del estilo de pronósticos de {selectedPlayerName} respecto a la media de la comunidad (línea punteada blanca).
+                </p>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div style={{ background: "rgba(255,255,255,0.03)", padding: "12px 16px", borderRadius: "8px" }}>
+                  <span className="muted" style={{ fontSize: "0.75rem", textTransform: "uppercase" }}>Posición Actual</span>
+                  <div style={{ fontSize: "1.4rem", fontWeight: "800", color: "var(--usa-white)" }}>
+                    #{radarStats.pStanding?.position || "-"} <span style={{ fontSize: "1rem", color: "var(--usa-red-bright)", marginLeft: "4px" }}>({radarStats.pStanding?.total_points || 0} pts)</span>
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.03)", padding: "12px 16px", borderRadius: "8px" }}>
+                  <span className="muted" style={{ fontSize: "0.75rem", textTransform: "uppercase" }}>Promedio Goles</span>
+                  <div style={{ fontSize: "1.4rem", fontWeight: "800", color: "var(--usa-white)" }}>
+                    {radarStats.pAvgGoals.toFixed(2)}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.03)", padding: "12px 16px", borderRadius: "8px" }}>
+                  <span className="muted" style={{ fontSize: "0.75rem", textTransform: "uppercase" }}>Frecuencia Empates</span>
+                  <div style={{ fontSize: "1.4rem", fontWeight: "800", color: "var(--usa-white)" }}>
+                    {radarStats.pDrawPct.toFixed(1)}%
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.03)", padding: "12px 16px", borderRadius: "8px" }}>
+                  <span className="muted" style={{ fontSize: "0.75rem", textTransform: "uppercase" }}>Rdos. Distintos</span>
+                  <div style={{ fontSize: "1.4rem", fontWeight: "800", color: "var(--usa-white)" }}>
+                    {radarStats.pUnique}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </section>
+        </div>
+      )}
 
       {/* Pestaña: Especiales */}
       {playerViewerTab === "especiales" && (

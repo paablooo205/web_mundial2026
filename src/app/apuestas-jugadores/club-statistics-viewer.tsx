@@ -39,24 +39,24 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
 
   // --- RENDIMIENTO (Basado en Standings) ---
   const oraculos = useMemo(() => {
-    if (standings.length === 0) return [];
-    const maxVal = Math.max(...standings.map(s => s.exact_scores ?? 0));
-    if (maxVal === 0 || isNaN(maxVal)) return [];
-    return standings.filter(s => s.exact_scores === maxVal).map(s => ({ name: s.display_name, val: s.exact_scores }));
+    if (standings.length === 0) return null;
+    const sorted = [...standings].sort((a, b) => (b.exact_scores ?? 0) - (a.exact_scores ?? 0));
+    const top3 = sorted.filter(s => (s.exact_scores ?? 0) > 0).slice(0, 3);
+    return top3.length > 0 ? top3.map(s => ({ name: s.display_name, val: s.exact_scores ?? 0 })) : null;
   }, [standings]);
 
   const rey1x2 = useMemo(() => {
-    if (standings.length === 0) return [];
-    const maxVal = Math.max(...standings.map(s => s.correct_signs ?? 0));
-    if (maxVal === 0 || isNaN(maxVal)) return [];
-    return standings.filter(s => s.correct_signs === maxVal).map(s => ({ name: s.display_name, val: s.correct_signs }));
+    if (standings.length === 0) return null;
+    const sorted = [...standings].sort((a, b) => (b.correct_signs ?? 0) - (a.correct_signs ?? 0));
+    const top3 = sorted.filter(s => (s.correct_signs ?? 0) > 0).slice(0, 3);
+    return top3.length > 0 ? top3.map(s => ({ name: s.display_name, val: s.correct_signs ?? 0 })) : null;
   }, [standings]);
 
   const visionario = useMemo(() => {
-    if (standings.length === 0) return [];
-    const maxVal = Math.max(...standings.map(s => s.advancement_hits ?? 0));
-    if (maxVal === 0 || isNaN(maxVal)) return [];
-    return standings.filter(s => s.advancement_hits === maxVal).map(s => ({ name: s.display_name, val: s.advancement_hits }));
+    if (standings.length === 0) return null;
+    const sorted = [...standings].sort((a, b) => (b.advancement_hits ?? 0) - (a.advancement_hits ?? 0));
+    const top3 = sorted.filter(s => (s.advancement_hits ?? 0) > 0).slice(0, 3);
+    return top3.length > 0 ? top3.map(s => ({ name: s.display_name, val: s.advancement_hits ?? 0 })) : null;
   }, [standings]);
 
   // --- ESTILOS DE JUEGO (Basado en Predictions) ---
@@ -129,8 +129,9 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
   // El Pupas: jugador con más partidos a 0 puntos
   // El Rompe-Quinielas: mayor error acumulado en un solo partido
   // El Cholón / El Cisne Negro: partidos donde más/menos puntos repartió la comunidad
-  const { pupas, rompeQuinielas, cholon, cisneNegro } = useMemo(() => {
-    if (results.length === 0) return { pupas: null, rompeQuinielas: null, cholon: null, cisneNegro: null };
+  // El Lobo Solitario: partidos donde solo un jugador puntuó
+  const { pupas, rompeQuinielas, cholon, cisneNegro, loboSolitario } = useMemo(() => {
+    if (results.length === 0) return { pupas: null, rompeQuinielas: null, cholon: null, cisneNegro: null, loboSolitario: null };
 
     // Creamos un mapa de resultados reales por partido
     const resultMap: Record<number, { home: number, away: number }> = {};
@@ -141,7 +142,7 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
     });
 
     const matchesWithResults = Object.keys(resultMap).map(Number);
-    if (matchesWithResults.length === 0) return { pupas: null, rompeQuinielas: null, cholon: null, cisneNegro: null };
+    if (matchesWithResults.length === 0) return { pupas: null, rompeQuinielas: null, cholon: null, cisneNegro: null, loboSolitario: null };
 
     // Por jugador: partidos a 0 puntos y peor cantada
     const pupasCount: Record<number, number> = {};
@@ -149,7 +150,11 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
 
     // Por partido: suma total de error de toda la comunidad (para Cholón/Cisne Negro)
     const matchCommunityScore: Record<number, number> = {};
-    matchesWithResults.forEach(mId => { matchCommunityScore[mId] = 0; });
+    const matchScorers: Record<number, number[]> = {};
+    matchesWithResults.forEach(mId => { 
+      matchCommunityScore[mId] = 0; 
+      matchScorers[mId] = [];
+    });
 
     predictions.forEach(p => {
       const real = resultMap[p.match_id];
@@ -175,7 +180,30 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
 
       // Cholón / Cisne Negro: puntos repartidos por la comunidad en cada partido
       matchCommunityScore[p.match_id] = (matchCommunityScore[p.match_id] || 0) + points;
+      
+      // Lobo Solitario: anotadores por partido
+      if (points > 0 && matchScorers[p.match_id]) {
+        matchScorers[p.match_id].push(p.player_id);
+      }
     });
+
+    // El Lobo Solitario
+    const loboCount: Record<number, number> = {};
+    Object.values(matchScorers).forEach(scorers => {
+      if (scorers.length === 1) { // Solo un acertante
+        const winnerId = scorers[0];
+        loboCount[winnerId] = (loboCount[winnerId] || 0) + 1;
+      }
+    });
+    
+    let loboRes = null;
+    const loboEntries = Object.entries(loboCount).sort((a, b) => Number(b[1]) - Number(a[1]));
+    if (loboEntries.length > 0) {
+      const maxLobo = Number(loboEntries[0][1]);
+      loboRes = loboEntries.filter(([, v]) => Number(v) === maxLobo).map(([pid, v]) => ({
+        name: getPlayerName(Number(pid)), val: Number(v)
+      }));
+    }
 
     // El Pupas
     let pupasRes = null;
@@ -217,7 +245,7 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
       cisneRes = bottomMatch ? `${bottomMatch.home_team_name} vs ${bottomMatch.away_team_name} (${Number(cisneEntries[0][1])} pts totales)` : null;
     }
 
-    return { pupas: pupasRes, rompeQuinielas: rompeRes, cholon: cholonRes, cisneNegro: cisneRes };
+    return { pupas: pupasRes, rompeQuinielas: rompeRes, cholon: cholonRes, cisneNegro: cisneRes, loboSolitario: loboRes };
   }, [predictions, results, matches, players]);
 
   const { topRepeatedScore, avgExpectedGoals, consensusMatch } = useMemo(() => {
@@ -349,13 +377,31 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
 
 
   const renderNames = (items: { name: string, val: string | number }[] | null) => {
-    if (!items || items.length === 0) return "Nadie todavía";
-    return items.map(i => i.name).join(", ");
+    if (!items || items.length === 0) return <span className="muted">Nadie todavía</span>;
+    if (items.length <= 2) return items.map(i => i.name).join(" y ");
+    return `${items[0].name} y ${items.length - 1} más`;
   };
 
   const renderVal = (items: { name: string, val: string | number }[] | null) => {
     if (!items || items.length === 0) return "";
     return items[0].val;
+  };
+
+  const renderPodium = (items: { name: string, val: string | number }[] | null) => {
+    if (!items || items.length === 0) return <span className="muted">Nadie todavía</span>;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px", width: "100%", marginTop: "12px" }}>
+        {items.map((item, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: i === 0 ? "rgba(230, 57, 70, 0.12)" : "rgba(255, 255, 255, 0.03)", borderRadius: "8px", border: i === 0 ? "1px solid rgba(230, 57, 70, 0.3)" : "1px solid transparent" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <span style={{ fontWeight: "900", color: i === 0 ? "var(--usa-red-bright)" : "var(--muted)", fontSize: i === 0 ? "1.1rem" : "0.9rem" }}>#{i+1}</span>
+              <span style={{ fontWeight: i === 0 ? "800" : "600", color: i === 0 ? "var(--usa-white)" : "rgba(255, 255, 255, 0.8)", fontSize: i === 0 ? "1rem" : "0.95rem" }}>{item.name}</span>
+            </div>
+            <span style={{ fontWeight: "800", color: i === 0 ? "var(--usa-red-bright)" : "var(--usa-blue-bright)" }}>{item.val}</span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -371,35 +417,26 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
           <h3 className="phase-title" style={{ marginBottom: "16px", paddingLeft: "12px", borderLeft: "3px solid var(--usa-red-bright)" }}>
             Salón de la Fama
           </h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
             <div className="panel" style={{ padding: "24px", position: "relative", overflow: "hidden" }}>
               <div style={{ fontSize: "2rem", marginBottom: "8px" }}>🎯</div>
               <h4 style={{ margin: "0 0 4px 0", fontSize: "1.1rem" }}>El Oráculo</h4>
-              <p className="muted" style={{ margin: "0 0 16px 0", fontSize: "0.85rem" }}>Más marcadores exactos</p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ fontWeight: "700", fontSize: "1.1rem", color: "var(--usa-white)" }}>{renderNames(oraculos)}</span>
-                <span style={{ fontWeight: "800", color: "var(--usa-red-bright)", fontSize: "1.5rem" }}>{renderVal(oraculos)}</span>
-              </div>
+              <p className="muted" style={{ margin: "0 0 4px 0", fontSize: "0.85rem" }}>Más marcadores exactos</p>
+              {renderPodium(oraculos)}
             </div>
 
             <div className="panel" style={{ padding: "24px", position: "relative", overflow: "hidden" }}>
               <div style={{ fontSize: "2rem", marginBottom: "8px" }}>⚖️</div>
               <h4 style={{ margin: "0 0 4px 0", fontSize: "1.1rem" }}>El Rey del 1X2</h4>
-              <p className="muted" style={{ margin: "0 0 16px 0", fontSize: "0.85rem" }}>Más signos correctos acertados</p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ fontWeight: "700", fontSize: "1.1rem", color: "var(--usa-white)" }}>{renderNames(rey1x2)}</span>
-                <span style={{ fontWeight: "800", color: "var(--usa-red-bright)", fontSize: "1.5rem" }}>{renderVal(rey1x2)}</span>
-              </div>
+              <p className="muted" style={{ margin: "0 0 4px 0", fontSize: "0.85rem" }}>Más signos correctos acertados</p>
+              {renderPodium(rey1x2)}
             </div>
 
             <div className="panel" style={{ padding: "24px", position: "relative", overflow: "hidden" }}>
               <div style={{ fontSize: "2rem", marginBottom: "8px" }}>🔮</div>
               <h4 style={{ margin: "0 0 4px 0", fontSize: "1.1rem" }}>Visionario</h4>
-              <p className="muted" style={{ margin: "0 0 16px 0", fontSize: "0.85rem" }}>Más clasificados de eliminatoria</p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ fontWeight: "700", fontSize: "1.1rem", color: "var(--usa-white)" }}>{renderNames(visionario)}</span>
-                <span style={{ fontWeight: "800", color: "var(--usa-red-bright)", fontSize: "1.5rem" }}>{renderVal(visionario)}</span>
-              </div>
+              <p className="muted" style={{ margin: "0 0 4px 0", fontSize: "0.85rem" }}>Más clasificados de eliminatoria</p>
+              {renderPodium(visionario)}
             </div>
           </div>
         </section>
@@ -475,6 +512,20 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
                 </span>
                 <span style={{ fontWeight: "800", color: "var(--usa-red-bright)", fontSize: "1.5rem" }}>
                   {pupas ? renderVal(pupas) : "-"}
+                </span>
+              </div>
+            </div>
+
+            <div className="panel" style={{ padding: "24px" }}>
+              <div style={{ fontSize: "2rem", marginBottom: "8px" }}>🐺</div>
+              <h4 style={{ margin: "0 0 4px 0", fontSize: "1.1rem" }}>El Lobo Solitario</h4>
+              <p className="muted" style={{ margin: "0 0 16px 0", fontSize: "0.85rem" }}>Más aciertos como único puntuador</p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span style={{ fontWeight: "700", fontSize: "1.1rem", color: "var(--usa-white)" }}>
+                  {renderNames(loboSolitario)}
+                </span>
+                <span style={{ fontWeight: "800", color: "var(--usa-blue-bright)", fontSize: "1.5rem" }}>
+                  {loboSolitario ? renderVal(loboSolitario) : "-"}
                 </span>
               </div>
             </div>

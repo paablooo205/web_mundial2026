@@ -105,6 +105,8 @@ export function ClubSelectoClientWrapper({
           players={players}
           predictions={predictions}
           specialPredictions={specialPredictions}
+          standings={standings}
+          results={results}
         />
       )}
     </div>
