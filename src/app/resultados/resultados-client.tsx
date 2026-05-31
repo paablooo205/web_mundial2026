@@ -1,6 +1,27 @@
 "use client";
 
 import { useState, useMemo } from "react";
+
+function formatKickoff(kickoffAt: string | null): string | null {
+  if (!kickoffAt) return null;
+  try {
+    const date = new Date(kickoffAt);
+    const dayMonth = date.toLocaleDateString("es-ES", {
+      day: "numeric",
+      month: "short",
+      timeZone: "Europe/Madrid"
+    });
+    const time = date.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Europe/Madrid"
+    });
+    return `${dayMonth} · ${time}`;
+  } catch {
+    return null;
+  }
+}
+
 import {
   groupCodes,
   resolveKnockoutBracket,
@@ -333,6 +354,15 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
           color: var(--secondary);
           border-color: rgba(37, 99, 235, 0.3);
         }
+        .match-kickoff-time {
+          font-size: 0.6rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          color: var(--muted);
+          opacity: 0.75;
+          text-transform: uppercase;
+          margin-top: 2px;
+        }
         .bracket-container {
           background: rgba(12, 21, 40, 0.2);
           border: 1px solid var(--border);
@@ -596,6 +626,11 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
                         >
                           {isFinished ? "Finalizado" : isLive ? "En Vivo" : "Programado"}
                         </span>
+                        {formatKickoff(match.kickoff_at) && (
+                          <span className="match-kickoff-time">
+                            🕐 {formatKickoff(match.kickoff_at)}
+                          </span>
+                        )}
                       </div>
 
                       {/* Visitante */}
@@ -705,6 +740,11 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
                         >
                           {isFinished ? "Finalizado" : isLive ? "En Vivo" : "Programado"}
                         </span>
+                        {formatKickoff(match.kickoff_at) && (
+                          <span className="match-kickoff-time">
+                            🕐 {formatKickoff(match.kickoff_at)}
+                          </span>
+                        )}
                       </div>
 
                       {/* Visitante */}
