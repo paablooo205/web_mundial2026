@@ -80,6 +80,7 @@ export function ClubSelectoClientWrapper({
 
       {activeTab === "estadisticas" && (
         <ClubStatisticsViewer 
+          matches={matches}
           players={players}
           teams={teams}
           predictions={predictions}
