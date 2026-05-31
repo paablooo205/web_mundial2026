@@ -24,7 +24,8 @@ function polarToCartesian(cx: number, cy: number, r: number, angleRad: number) {
 export function PlayerRadarChart({ axes, avgAxes, playerColor = "#E63946", avgColor = "rgba(255,255,255,0.15)", size = 260 }: Props) {
   const cx = size / 2;
   const cy = size / 2;
-  const radius = size * 0.38;
+  // Reduce radius from 0.38 to 0.30 to leave room for the labels inside the SVG
+  const radius = size * 0.30;
   const n = axes.length;
   const angleStep = (2 * Math.PI) / n;
   // Start from top (-π/2)
@@ -65,7 +66,7 @@ export function PlayerRadarChart({ axes, avgAxes, playerColor = "#E63946", avgCo
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      style={{ display: "block", maxWidth: "100%" }}
+      style={{ display: "block", maxWidth: "100%", overflow: "visible" }}
     >
       {/* Grid circles */}
       {gridLevels.map((lvl, gi) => (
