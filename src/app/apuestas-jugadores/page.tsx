@@ -26,6 +26,12 @@ export default async function ApuestasJugadoresPage() {
     predicted_winner_team_id: p.predicted_winner_team_id ? Number(p.predicted_winner_team_id) : null
   }));
 
+  const mappedResults = data.results.map((r: any) => ({
+    match_id: Number(r.match_id),
+    home_goals: r.home_goals,
+    away_goals: r.away_goals
+  }));
+
   const mappedSpecialPredictions = data.specialPredictions.map((sp: any) => ({
     player_id: Number(sp.player_id),
     champion_team_id: sp.champion_team_id ? Number(sp.champion_team_id) : null,
@@ -48,6 +54,7 @@ export default async function ApuestasJugadoresPage() {
         teams={data.teams}
         players={data.players}
         predictions={mappedPredictions}
+        results={mappedResults}
         specialPredictions={mappedSpecialPredictions}
         standings={standings}
       />

@@ -13,6 +13,12 @@ type Match = {
   kickoff_at: string | null;
 };
 
+type MatchResult = {
+  match_id: number;
+  home_goals: number | null;
+  away_goals: number | null;
+};
+
 type Team = {
   id: number;
   canonical_name: string;
@@ -44,6 +50,7 @@ type Props = {
   teams: Team[];
   players: Player[];
   predictions: PlayerPrediction[];
+  results: MatchResult[];
   specialPredictions: PlayerSpecialPrediction[];
   standings: StandingRow[];
 };
@@ -53,6 +60,7 @@ export function ClubSelectoClientWrapper({
   teams,
   players,
   predictions,
+  results,
   specialPredictions,
   standings
 }: Props) {
@@ -84,6 +92,7 @@ export function ClubSelectoClientWrapper({
           players={players}
           teams={teams}
           predictions={predictions}
+          results={results}
           specialPredictions={specialPredictions}
           standings={standings}
         />
