@@ -1,10 +1,13 @@
-import { getAdminFullData } from "@/lib/queries";
-import { PlayerBetsViewer } from "./player-bets-viewer";
+import { getAdminFullData, getPublicStandings } from "@/lib/queries";
+import { ClubSelectoClientWrapper } from "./club-selecto-client-wrapper";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApuestasJugadoresPage() {
-  const data = await getAdminFullData();
+  const [data, standings] = await Promise.all([
+    getAdminFullData(),
+    getPublicStandings()
+  ]);
 
   // Mapeamos los partidos
   const mappedMatches = data.matches.map((m: any) => ({
@@ -34,18 +37,19 @@ export default async function ApuestasJugadoresPage() {
     <main className="page">
       <div className="page-header">
         <div>
-          <h1>Apuestas de Jugadores</h1>
-          <p className="muted">Consulta y compara las porras personales y predicciones de los integrantes del Club Selecto.</p>
+          <h1>Club Selecto</h1>
+          <p className="muted">Consulta las estadísticas de la comunidad y compara las porras personales de los integrantes.</p>
         </div>
         <span className="status-pill">Pública</span>
       </div>
 
-      <PlayerBetsViewer
+      <ClubSelectoClientWrapper
         matches={mappedMatches}
         teams={data.teams}
         players={data.players}
         predictions={mappedPredictions}
         specialPredictions={mappedSpecialPredictions}
+        standings={standings}
       />
     </main>
   );
