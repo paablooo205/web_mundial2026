@@ -404,6 +404,26 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
     );
   };
 
+  if (predictions.length === 0) {
+    return (
+      <div className="panel" style={{ padding: "64px 32px", textAlign: "center", animation: "fadeIn 0.5s ease-out", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(12, 21, 40, 0.3)", border: "1px solid var(--border)", borderRadius: "12px", margin: "24px 0" }}>
+        <div style={{ fontSize: "4rem", marginBottom: "20px", filter: "drop-shadow(0 0 10px rgba(251, 191, 36, 0.3))", animation: "bounce 2s infinite alternate ease-in-out" }}>🏆</div>
+        <h3 style={{ fontSize: "1.6rem", fontWeight: "800", color: "var(--usa-white)", marginBottom: "12px", letterSpacing: "-0.02em" }}>
+          ¡El torneo aún no ha comenzado!
+        </h3>
+        <p className="muted" style={{ maxWidth: "520px", margin: "0 auto 24px", fontSize: "0.95rem", lineHeight: "1.6" }}>
+          Vuelve pronto una vez que comiencen los partidos del mundial para ver las divertidas estadísticas, perfiles de estilo de juego de los participantes y las tendencias de voto del Club Selecto.
+        </p>
+        <style jsx>{`
+          @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-8px); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div style={{ animation: "fadeIn 0.3s ease-out", display: "flex", flexDirection: "column", gap: "40px" }}>
       
@@ -672,7 +692,16 @@ export function ClubStatisticsViewer({ matches = [], players, teams, predictions
           </div>
         </section>
       </div>
-      
+      <style jsx>{`
+        .panel {
+          transition: transform 0.25s cubic-bezier(0.165, 0.84, 0.44, 1), border-color 0.2s ease, box-shadow 0.25s ease;
+        }
+        .panel:hover {
+          transform: translateY(-4px);
+          border-color: var(--border-strong) !important;
+          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+        }
+      `}</style>
     </div>
   );
 }

@@ -268,7 +268,7 @@ export default function HomePage() {
                   setCode(e.target.value);
                   setError(null);
                 }}
-                placeholder="juanmizo_marcaico"
+                placeholder="Introduce tu código aquí (ej: juanmizo_marcaico)"
                 className="inline-auth-input"
                 autoComplete="off"
                 spellCheck={false}
