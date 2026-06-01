@@ -187,7 +187,22 @@ export function PlayerBetsViewer({
       { label: "Originalidad", value: normalize(cAvgUnique, maxUnique) },
     ];
 
-    return { playerAxes, avgAxes, pStanding, pAvgGoals, pDrawPct, pUnique, maxPoints };
+    const profileTags: string[] = [];
+    if (pAvgGoals > cAvgGoals * 1.15) profileTags.push("Goleador");
+    else if (pAvgGoals > 0 && pAvgGoals < cAvgGoals * 0.85) profileTags.push("Amarrategui");
+
+    if (pDrawPct > cAvgDrawPct * 1.25) profileTags.push("Factor Suizo");
+
+    if (pUnique > cAvgUnique * 1.2) profileTags.push("Original");
+    else if (pUnique > 0 && pUnique < cAvgUnique * 0.8) profileTags.push("Predecible");
+
+    if (avgExact > 0 && (pStanding?.exact_scores || 0) > avgExact * 1.3) profileTags.push("Francotirador");
+
+    if (pStanding?.position && pStanding.position <= 3) profileTags.push("Top 3");
+
+    if (profileTags.length === 0) profileTags.push("Equilibrado");
+
+    return { playerAxes, avgAxes, pStanding, pAvgGoals, pDrawPct, pUnique, maxPoints, profileTags };
   }, [standings, players, predictions, selectedPlayerId]);
 
   const getMatchesForGroup = (groupCode: string) => {
@@ -346,7 +361,14 @@ export function PlayerBetsViewer({
           </h4>
           <section className="panel" style={{ padding: "32px 24px", display: "flex", flexWrap: "wrap", gap: "40px", alignItems: "center", justifyContent: "center" }}>
             
-            <div style={{ flex: "0 0 auto" }}>
+            <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap", justifyContent: "center" }}>
+                {radarStats.profileTags.map((tag, idx) => (
+                  <span key={idx} style={{ background: "rgba(230, 57, 70, 0.2)", color: "var(--usa-red-bright)", border: "1px solid var(--usa-red-bright)", padding: "4px 12px", borderRadius: "16px", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
               <PlayerRadarChart axes={radarStats.playerAxes} avgAxes={radarStats.avgAxes} size={280} />
             </div>
 
