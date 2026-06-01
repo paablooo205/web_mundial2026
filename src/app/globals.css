@@ -349,12 +349,13 @@ td {
 }
 
 th {
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
-  background: rgba(60, 59, 110, 0.35);
+  color: var(--usa-white);
+  background: rgba(60, 59, 110, 0.45);
+  border-bottom: 2px solid var(--usa-blue-bright);
 }
 
 tbody tr:hover {
@@ -387,18 +388,24 @@ td:nth-child(3) {
   background: var(--usa-red-bright);
   border-color: var(--usa-red);
   color: var(--usa-white);
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.45);
+  transform: skewX(-6deg);
 }
 
 .rank-2 {
-  background: var(--usa-blue);
+  background: var(--usa-blue-bright);
   border-color: var(--secondary);
   color: var(--usa-white);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.45);
+  transform: skewX(-6deg);
 }
 
 .rank-3 {
   background: var(--bg-elevated);
   border-color: var(--silver);
   color: var(--silver);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+  transform: skewX(-6deg);
 }
 
 .form-grid {
@@ -544,8 +551,13 @@ input::placeholder {
 .phase-title {
   margin-bottom: 12px;
   padding-left: 12px;
-  border-left: 3px solid var(--usa-red-bright);
+  border-left: 4px solid var(--usa-red-bright);
   color: var(--usa-white);
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-style: italic;
+  text-shadow: 0 0 12px rgba(220, 38, 38, 0.25);
 }
 
 .tabs-container {
