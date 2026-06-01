@@ -665,7 +665,7 @@ export function PredictionForm({
                         {isMatchLocked && <span style={{ color: "var(--danger)", fontWeight: "700" }}>🔒 Partido iniciado</span>}
                       </div>
                       
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "20px" }}>
+                      <div className="match-teams-grid">
                          <div className="match-team-input match-team-input--home">
                            <strong>{match.home_team_name ?? "Por decidir"}</strong>
                            <input
@@ -890,7 +890,7 @@ export function PredictionForm({
                               {isMatchLocked && <span style={{ color: "var(--danger)", fontWeight: "700" }}>🔒 Partido iniciado</span>}
                             </div>
 
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", alignItems: "center", gap: "20px" }}>
+                            <div className="match-teams-ko-grid">
                               <div className="team-names" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                                 <strong className={homeResolved ? "team-resolved" : "team-pending"}>
                                   {resolvedHome}

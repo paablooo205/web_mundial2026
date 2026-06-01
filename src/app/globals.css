@@ -422,6 +422,20 @@ td:nth-child(3) {
   border-bottom: 1px solid var(--line);
 }
 
+.match-teams-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 20px;
+}
+
+.match-teams-ko-grid {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 20px;
+}
+
 .match-team-input {
   display: flex;
   align-items: center;
@@ -1342,6 +1356,16 @@ code {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
     padding: 14px 12px !important;
+  }
+
+  .match-teams-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .match-teams-ko-grid {
+    grid-template-columns: 1fr auto auto !important;
+    gap: 8px !important;
   }
 
   .match-team-input {
