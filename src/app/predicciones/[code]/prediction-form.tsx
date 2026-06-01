@@ -1,6 +1,7 @@
 "use client";
 
 import { isDoubleScoringPhase } from "@/lib/knockout-scoring";
+import { formatMatchDate } from "@/lib/date-utils";
 import { useState, useMemo, useEffect } from "react";
 
 type Player = {
@@ -423,7 +424,12 @@ export function PredictionForm({
 
     const response = await fetch("/api/predictions", { method: "POST", body: formData });
     setSaving(false);
-    setMessage(response.ok ? "✅ Guardado correctamente." : "❌ No se pudo guardar.");
+    if (response.ok) {
+      setMessage("✅ Guardado correctamente.");
+    } else {
+      const data = await response.json().catch(() => ({}));
+      setMessage(`❌ Error: ${data.error || "No se pudo guardar."}`);
+    }
   }
 
   // ─── Match Group List Generators ───
@@ -466,11 +472,13 @@ export function PredictionForm({
 
   // ─── Render Bracket Card ───
   const renderBracketCard = (match: Match) => {
-    const resolvedHome = resolvedKnockoutTeams[match.id]?.home ?? "Por decidir";
+     const resolvedHome = resolvedKnockoutTeams[match.id]?.home ?? "Por decidir";
     const resolvedAway = resolvedKnockoutTeams[match.id]?.away ?? "Por decidir";
     const homeResolved = isResolved(resolvedHome);
     const awayResolved = isResolved(resolvedAway);
-    const canBet = homeResolved && awayResolved && !locked;
+    const isMatchLocked = !!(locked || (match.kickoff_at && new Date() >= new Date(match.kickoff_at)));
+    const canBet = homeResolved && awayResolved && !isMatchLocked;
+    const dateString = formatMatchDate(match.kickoff_at);
 
     const score = scores[match.id];
     const isDraw = score && score.home !== "" && score.away !== "" && Number(score.home) === Number(score.away);
@@ -479,9 +487,13 @@ export function PredictionForm({
 
     return (
       <div className={`bracket-card ${!canBet ? "bracket-card--pending" : ""}`} key={match.id}>
-        <div className="bracket-card-header">
-          <strong>P. {match.id}</strong>
-          <span className="muted">{match.phase.replace(" de final", "")}</span>
+        <div className="bracket-card-header" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+            <strong>P. {match.id}</strong>
+            <span className="muted">{match.phase.replace(" de final", "")}</span>
+          </div>
+          {dateString && <span className="muted" style={{ fontSize: "9px" }}>🕐 {dateString}</span>}
+          {isMatchLocked && <span style={{ color: "var(--danger)", fontSize: "9px", fontWeight: "700" }}>🔒 Partido iniciado</span>}
         </div>
         
         <div className="bracket-card-row">
@@ -492,6 +504,7 @@ export function PredictionForm({
             aria-label={`Goles local ${match.id}`}
             disabled={!canBet}
             min={0}
+            max={20}
             name={`match_${match.id}_home`}
             type="number"
             placeholder="0"
@@ -508,6 +521,7 @@ export function PredictionForm({
             aria-label={`Goles visitante ${match.id}`}
             disabled={!canBet}
             min={0}
+            max={20}
             name={`match_${match.id}_away`}
             type="number"
             placeholder="0"
@@ -639,37 +653,52 @@ export function PredictionForm({
               {/* Match inputs */}
               <h3 className="phase-title">Partidos del Grupo {groupCode}</h3>
               <section className="panel">
-                {groupMatches.map((match) => (
-                  <div className="match-row" key={match.id}>
-                    <div className="match-team-input match-team-input--home">
-                      <strong>{match.home_team_name ?? "Por decidir"}</strong>
-                      <input
-                        aria-label={`Goles local ${match.id}`}
-                        disabled={locked}
-                        min={0}
-                        name={`match_${match.id}_home`}
-                        type="number"
-                        placeholder="0"
-                        value={scores[match.id]?.home ?? ""}
-                        onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
-                      />
+                {groupMatches.map((match) => {
+                  const kickoffAt = match.kickoff_at;
+                  const isMatchLocked = !!(locked || (kickoffAt && new Date() >= new Date(kickoffAt)));
+                  const dateString = formatMatchDate(kickoffAt);
+
+                  return (
+                    <div className={`match-row ${isMatchLocked ? "match-row--pending" : ""}`} key={match.id} style={{ display: "grid", gridTemplateColumns: "1fr", gap: "8px", padding: "16px 20px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", color: "var(--muted)", borderBottom: "1px solid rgba(255,255,255,0.03)", paddingBottom: "6px" }}>
+                        {dateString && <span>🕐 {dateString}</span>}
+                        {isMatchLocked && <span style={{ color: "var(--danger)", fontWeight: "700" }}>🔒 Partido iniciado</span>}
+                      </div>
+                      
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "20px" }}>
+                         <div className="match-team-input match-team-input--home">
+                           <strong>{match.home_team_name ?? "Por decidir"}</strong>
+                           <input
+                             aria-label={`Goles local ${match.id}`}
+                             disabled={isMatchLocked}
+                             min={0}
+                             max={20}
+                             name={`match_${match.id}_home`}
+                             type="number"
+                             placeholder="0"
+                             value={scores[match.id]?.home ?? ""}
+                             onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
+                           />
+                         </div>
+                         <div className="match-vs muted">vs</div>
+                         <div className="match-team-input match-team-input--away">
+                           <input
+                             aria-label={`Goles visitante ${match.id}`}
+                             disabled={isMatchLocked}
+                             min={0}
+                             max={20}
+                             name={`match_${match.id}_away`}
+                             type="number"
+                             placeholder="0"
+                             value={scores[match.id]?.away ?? ""}
+                             onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
+                           />
+                           <strong>{match.away_team_name ?? "Por decidir"}</strong>
+                         </div>
+                      </div>
                     </div>
-                    <div className="match-vs muted">vs</div>
-                    <div className="match-team-input match-team-input--away">
-                      <input
-                        aria-label={`Goles visitante ${match.id}`}
-                        disabled={locked}
-                        min={0}
-                        name={`match_${match.id}_away`}
-                        type="number"
-                        placeholder="0"
-                        value={scores[match.id]?.away ?? ""}
-                        onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
-                      />
-                      <strong>{match.away_team_name ?? "Por decidir"}</strong>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </section>
             </div>
           );
@@ -844,44 +873,56 @@ export function PredictionForm({
                         const resolvedAway = resolvedKnockoutTeams[match.id]?.away ?? "Por decidir";
                         const homeResolved = isResolved(resolvedHome);
                         const awayResolved = isResolved(resolvedAway);
-                        const canBet = homeResolved && awayResolved && !locked;
                         
                         const score = scores[match.id];
                         const isDraw = score && score.home !== "" && score.away !== "" && Number(score.home) === Number(score.away);
                         const homeTeamObj = teams.find((t) => t.canonical_name === resolvedHome);
                         const awayTeamObj = teams.find((t) => t.canonical_name === resolvedAway);
 
+                        const isMatchLocked = !!(locked || (match.kickoff_at && new Date() >= new Date(match.kickoff_at)));
+                        const canBet = homeResolved && awayResolved && !isMatchLocked;
+                        const dateString = formatMatchDate(match.kickoff_at);
+
                         return (
-                          <div className={`match-row ${!canBet ? "match-row--pending" : ""}`} key={match.id}>
-                            <div className="team-names">
-                              <strong className={homeResolved ? "team-resolved" : "team-pending"}>
-                                {resolvedHome}
-                              </strong>
-                              <span className="muted">vs</span>
-                              <strong className={awayResolved ? "team-resolved" : "team-pending"}>
-                                {resolvedAway}
-                              </strong>
+                          <div className={`match-row ${!canBet ? "match-row--pending" : ""}`} key={match.id} style={{ display: "grid", gridTemplateColumns: "1fr", gap: "8px", padding: "16px 20px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", color: "var(--muted)", borderBottom: "1px solid rgba(255,255,255,0.03)", paddingBottom: "6px" }}>
+                              {dateString && <span>🕐 {dateString}</span>}
+                              {isMatchLocked && <span style={{ color: "var(--danger)", fontWeight: "700" }}>🔒 Partido iniciado</span>}
                             </div>
-                            <input
-                              aria-label={`Goles local ${match.id}`}
-                              disabled={!canBet}
-                              min={0}
-                              name={`match_${match.id}_home`}
-                              type="number"
-                              placeholder="0"
-                              value={scores[match.id]?.home ?? ""}
-                              onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
-                            />
-                            <input
-                              aria-label={`Goles visitante ${match.id}`}
-                              disabled={!canBet}
-                              min={0}
-                              name={`match_${match.id}_away`}
-                              type="number"
-                              placeholder="0"
-                              value={scores[match.id]?.away ?? ""}
-                              onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
-                            />
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", alignItems: "center", gap: "20px" }}>
+                              <div className="team-names" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                <strong className={homeResolved ? "team-resolved" : "team-pending"}>
+                                  {resolvedHome}
+                                </strong>
+                                <span className="muted">vs</span>
+                                <strong className={awayResolved ? "team-resolved" : "team-pending"}>
+                                  {resolvedAway}
+                                </strong>
+                              </div>
+                              <input
+                                aria-label={`Goles local ${match.id}`}
+                                disabled={!canBet}
+                                min={0}
+                                max={20}
+                                name={`match_${match.id}_home`}
+                                type="number"
+                                placeholder="0"
+                                value={scores[match.id]?.home ?? ""}
+                                onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
+                              />
+                              <input
+                                aria-label={`Goles visitante ${match.id}`}
+                                disabled={!canBet}
+                                min={0}
+                                max={20}
+                                name={`match_${match.id}_away`}
+                                type="number"
+                                placeholder="0"
+                                value={scores[match.id]?.away ?? ""}
+                                onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
+                              />
+                            </div>
 
                             {/* Penalty/OT selector in list view */}
                             {isDraw && canBet && homeTeamObj && awayTeamObj && (
@@ -977,14 +1018,37 @@ export function PredictionForm({
       </div>
 
       {/* ── Footer ── */}
-      <div className="page-header" style={{ alignItems: "center", marginTop: "24px" }}>
-        <p className="muted" style={{ margin: 0 }}>
-          {message}
-          {!message && locked && "El formulario está bloqueado (partidos ya iniciados)."}
-        </p>
-        <button className="button primary" disabled={locked || saving} type="submit">
-          {saving ? "Guardando…" : "💾 Guardar apuestas"}
-        </button>
+      <div className="page-header" style={{ alignItems: "center", marginTop: "24px", flexDirection: "column", gap: "16px", width: "100%" }}>
+        {message && (
+          <div style={{
+            width: "100%",
+            padding: "12px 16px",
+            borderRadius: "8px",
+            fontSize: "0.9rem",
+            fontWeight: "600",
+            textAlign: "center",
+            background: message.startsWith("❌") ? "rgba(220, 38, 38, 0.15)" : "rgba(16, 185, 129, 0.15)",
+            border: `1px solid ${message.startsWith("❌") ? "var(--danger)" : "#10b981"}`,
+            color: message.startsWith("❌") ? "var(--danger)" : "#10b981"
+          }}>
+            {message}
+          </div>
+        )}
+        <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+          <p className="muted" style={{ margin: 0 }}>
+            {locked && "El formulario está bloqueado (partidos ya iniciados)."}
+          </p>
+          <button className="button primary" disabled={locked || saving} type="submit" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {saving ? (
+              <>
+                <span className="spinner" style={{ display: "inline-block", width: "16px", height: "16px", border: "2px solid rgba(255,255,255,0.3)", borderRadius: "50%", borderTopColor: "#fff", animation: "spin 1s linear infinite" }} />
+                Guardando…
+              </>
+            ) : (
+              "💾 Guardar apuestas"
+            )}
+          </button>
+        </div>
       </div>
     </form>
   );

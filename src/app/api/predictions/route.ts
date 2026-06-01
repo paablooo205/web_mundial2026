@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { savePredictionsFromForm } from "@/lib/predictions";
 import { recalculateStandings } from "@/lib/standings";
 
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
   }
 
   await recalculateStandings();
+
+  // Revalidate everything across all layouts to guarantee instant updates
+  revalidatePath("/", "layout");
 
   return NextResponse.json({ ok: true });
 }

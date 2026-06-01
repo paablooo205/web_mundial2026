@@ -1,26 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-
-function formatKickoff(kickoffAt: string | null): string | null {
-  if (!kickoffAt) return null;
-  try {
-    const date = new Date(kickoffAt);
-    const dayMonth = date.toLocaleDateString("es-ES", {
-      day: "numeric",
-      month: "short",
-      timeZone: "Europe/Madrid"
-    });
-    const time = date.toLocaleTimeString("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Europe/Madrid"
-    });
-    return `${dayMonth} · ${time}`;
-  } catch {
-    return null;
-  }
-}
+import { formatMatchDate } from "@/lib/date-utils";
 
 import {
   groupCodes,
@@ -626,9 +607,9 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
                         >
                           {isFinished ? "Finalizado" : isLive ? "En Vivo" : "Programado"}
                         </span>
-                        {formatKickoff(match.kickoff_at) && (
+                        {formatMatchDate(match.kickoff_at) && (
                           <span className="match-kickoff-time">
-                            🕐 {formatKickoff(match.kickoff_at)}
+                            🕐 {formatMatchDate(match.kickoff_at)}
                           </span>
                         )}
                       </div>
@@ -740,9 +721,9 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
                         >
                           {isFinished ? "Finalizado" : isLive ? "En Vivo" : "Programado"}
                         </span>
-                        {formatKickoff(match.kickoff_at) && (
+                        {formatMatchDate(match.kickoff_at) && (
                           <span className="match-kickoff-time">
-                            🕐 {formatKickoff(match.kickoff_at)}
+                            🕐 {formatMatchDate(match.kickoff_at)}
                           </span>
                         )}
                       </div>

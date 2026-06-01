@@ -52,43 +52,67 @@ export async function savePredictionsFromForm(form: FormData) {
   const parsed = baseSchema.safeParse(raw);
 
   if (!parsed.success) {
-    return { ok: false as const, error: "Formulario no valido" };
+    return { ok: false as const, error: "Formulario no válido" };
   }
 
   const supabase = createServiceClient();
+  
+  // IDOR Mitigation: resolve verifiedPlayerId using ONLY access_code
   const { data: player } = await supabase
     .from("players")
     .select("id")
-    .eq("id", parsed.data.playerId)
     .eq("access_code", parsed.data.accessCode)
     .single();
 
   if (!player) {
-    return { ok: false as const, error: "Codigo no valido" };
+    return { ok: false as const, error: "Código no válido" };
   }
 
-  const { data: matches } = await supabase.from("matches").select("id, phase");
+  const verifiedPlayerId = player.id;
+
+  const { data: matches } = await supabase.from("matches").select("id, phase, kickoff_at");
   const phaseByMatchId = new Map((matches ?? []).map((m) => [m.id, m.phase]));
+  const kickoffByMatchId = new Map((matches ?? []).map((m) => [m.id, m.kickoff_at]));
 
   const predictions: PredictionRow[] = [];
+  const goalParser = z.coerce.number().int().min(0).max(20);
 
   for (const [key, value] of form.entries()) {
     const scoreMatch = /^match_(\d+)_(home|away)$/.exec(key);
     if (scoreMatch && value !== "") {
       const matchId = Number(scoreMatch[1]);
-      const row = getOrCreatePredictionRow(predictions, parsed.data.playerId, matchId);
-      if (scoreMatch[2] === "home") row.predicted_home_goals = Number(value);
-      if (scoreMatch[2] === "away") row.predicted_away_goals = Number(value);
+
+      // Server-Side Time-lock Check
+      const kickoffAt = kickoffByMatchId.get(matchId);
+      if (kickoffAt && new Date() >= new Date(kickoffAt)) {
+        return { ok: false as const, error: "El partido ya ha comenzado, no se puede apostar." };
+      }
+
+      // Zod Validation for Goals
+      const parsedGoal = goalParser.safeParse(value);
+      if (!parsedGoal.success) {
+        return { ok: false as const, error: `Los goles deben ser un entero entre 0 y 20.` };
+      }
+
+      const row = getOrCreatePredictionRow(predictions, verifiedPlayerId, matchId);
+      if (scoreMatch[2] === "home") row.predicted_home_goals = parsedGoal.data;
+      if (scoreMatch[2] === "away") row.predicted_away_goals = parsedGoal.data;
       continue;
     }
 
     const teamMatch = /^match_(\d+)_(home|away)_team_id$/.exec(key);
     if (teamMatch && value !== "") {
       const matchId = Number(teamMatch[1]);
+      
+      const kickoffAt = kickoffByMatchId.get(matchId);
+      if (kickoffAt && new Date() >= new Date(kickoffAt)) {
+        return { ok: false as const, error: "El partido ya ha comenzado, no se puede apostar." };
+      }
+
       const phase = phaseByMatchId.get(matchId);
       if (!phase || !isDoubleScoringPhase(phase)) continue;
 
-      const row = getOrCreatePredictionRow(predictions, parsed.data.playerId, matchId);
+      const row = getOrCreatePredictionRow(predictions, verifiedPlayerId, matchId);
       if (teamMatch[2] === "home") row.predicted_home_team_id = Number(value);
       if (teamMatch[2] === "away") row.predicted_away_team_id = Number(value);
     }
@@ -109,7 +133,7 @@ export async function savePredictionsFromForm(form: FormData) {
   }
 
   const { error: specialError } = await supabase.from("special_predictions").upsert({
-    player_id: parsed.data.playerId,
+    player_id: verifiedPlayerId,
     champion_team_id: parsed.data.championTeamId === "" ? null : parsed.data.championTeamId,
     top_scorer_name: parsed.data.topScorerName ?? null,
     golden_ball_name: parsed.data.goldenBallName ?? null,
