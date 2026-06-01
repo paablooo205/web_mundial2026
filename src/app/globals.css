@@ -1377,6 +1377,10 @@ code {
     width: 100%;
   }
 
+  .match-team-input--away {
+    flex-direction: row-reverse;
+  }
+
   .match-team-input input {
     width: 60px !important;
     min-width: 60px !important;
