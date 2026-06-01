@@ -409,8 +409,11 @@ td:nth-child(3) {
 }
 
 .form-grid {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  width: 100%;
 }
 
 .match-row {
@@ -651,7 +654,8 @@ input::placeholder {
   margin-bottom: 18px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: rgba(0, 0, 0, 0.2);
 }
 
