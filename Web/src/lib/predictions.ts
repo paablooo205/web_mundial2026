@@ -138,11 +138,16 @@ export async function savePredictionsFromForm(form: FormData) {
     top_scorer_name: parsed.data.topScorerName ?? null,
     golden_ball_name: parsed.data.goldenBallName ?? null,
     submitted_at: new Date().toISOString()
+  }, {
+    onConflict: "player_id"
   });
 
   if (specialError) {
     return { ok: false as const, error: specialError.message };
   }
+
+  const { revalidatePath } = require("next/cache");
+  revalidatePath("/", "layout");
 
   return { ok: true as const };
 }

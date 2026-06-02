@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { recalculateStandings } from "@/lib/standings";
+import { revalidatePath } from "next/cache";
 
 export async function POST(request: Request) {
   try {
@@ -72,6 +73,8 @@ export async function POST(request: Request) {
 
     // Always recalculate standings after saving any real result
     const newStandings = await recalculateStandings();
+
+    revalidatePath("/", "layout");
 
     return NextResponse.json({ ok: true, standingsCount: newStandings.length });
   } catch (err: any) {

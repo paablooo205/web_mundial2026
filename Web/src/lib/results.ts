@@ -10,20 +10,40 @@ function isFinished(status?: string) {
 export async function syncLiveResults(matches: FlashscoreLiveMatch[]) {
   const supabase = createServiceClient();
   let updated = 0;
+  const errors: string[] = [];
 
   for (const match of matches) {
     if (typeof match.home_score !== "number" || typeof match.away_score !== "number") {
       continue;
     }
 
-    const { data: dbMatch } = await supabase
-      .from("match_cards")
+    // Buscar por flashscore_name en teams, luego cruzar con matches
+    const { data: homeTeam } = await supabase
+      .from("teams")
       .select("id")
-      .ilike("home_team_name", match.home_team ?? "")
-      .ilike("away_team_name", match.away_team ?? "")
+      .ilike("flashscore_name", match.home_team ?? "")
+      .maybeSingle();
+
+    const { data: awayTeam } = await supabase
+      .from("teams")
+      .select("id")
+      .ilike("flashscore_name", match.away_team ?? "")
+      .maybeSingle();
+
+    if (!homeTeam || !awayTeam) {
+      errors.push(`No match found: ${match.home_team} vs ${match.away_team}`);
+      continue;
+    }
+
+    const { data: dbMatch } = await supabase
+      .from("matches")
+      .select("id")
+      .eq("home_team_id", homeTeam.id)
+      .eq("away_team_id", awayTeam.id)
       .maybeSingle();
 
     if (!dbMatch) {
+      errors.push(`Match not found in DB: ${match.home_team} vs ${match.away_team}`);
       continue;
     }
 
@@ -39,8 +59,10 @@ export async function syncLiveResults(matches: FlashscoreLiveMatch[]) {
 
     if (!error) {
       updated += 1;
+    } else {
+      errors.push(`Upsert error match ${dbMatch.id}: ${error.message}`);
     }
   }
 
-  return { updated };
+  return { updated, errors };
 }

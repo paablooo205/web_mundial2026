@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -236,6 +237,10 @@ export async function POST(request: Request) {
     } else {
       errors.push(`id=${u.id}: ${error.message}`);
     }
+  }
+
+  if (updated > 0) {
+    revalidatePath("/", "layout");
   }
 
   return NextResponse.json({

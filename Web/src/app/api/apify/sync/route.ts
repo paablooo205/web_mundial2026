@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchLiveMatches } from "@/lib/apify";
 import { syncLiveResults } from "@/lib/results";
 import { recalculateStandings } from "@/lib/standings";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -18,5 +19,7 @@ export async function POST(request: Request) {
   const sync = await syncLiveResults(liveMatches);
   await recalculateStandings();
 
-  return NextResponse.json({ ok: true, matchesSeen: liveMatches.length, updated: sync.updated });
+  revalidatePath("/", "layout");
+
+  return NextResponse.json({ ok: true, matchesSeen: liveMatches.length, updated: sync.updated, errors: sync.errors });
 }
