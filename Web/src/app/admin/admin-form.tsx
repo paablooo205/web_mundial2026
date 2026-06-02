@@ -543,7 +543,9 @@ export function AdminForm({
                       minScale={0.3}
                       maxScale={3}
                       centerOnInit={true}
-                      wheel={{ step: 0.1 }}
+                      limitToBounds={false}
+                      wheel={{ step: 0.05 }}
+                      panning={{ velocityDisabled: true }}
                     >
                       {({ zoomIn, zoomOut, resetTransform }) => (
                         <>
