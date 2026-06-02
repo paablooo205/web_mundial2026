@@ -508,20 +508,24 @@ export function PlayerBetsViewer({
             </div>
           </div>
 
+          <div className="subtabs-container">
+            {knockoutRounds.map((round) => (
+              <button
+                key={round}
+                type="button"
+                className={`subtab-button ${playerKnockoutMode === "rondas" && activeViewerKnockoutRound === round ? "active" : ""}`}
+                onClick={() => {
+                  setActiveViewerKnockoutRound(round);
+                  setPlayerKnockoutMode("rondas");
+                }}
+              >
+                {round.replace(" de final", "").replace("Dieciseisavos", "1/16").replace("Octavos", "1/8").replace("Cuartos", "1/4")}
+              </button>
+            ))}
+          </div>
+
           {playerKnockoutMode === "rondas" && (
             <>
-              <div className="subtabs-container">
-                {knockoutRounds.map((round) => (
-                  <button
-                    key={round}
-                    type="button"
-                    className={`subtab-button ${activeViewerKnockoutRound === round ? "active" : ""}`}
-                    onClick={() => setActiveViewerKnockoutRound(round)}
-                  >
-                    {round.replace(" de final", "").replace("Dieciseisavos", "1/16").replace("Octavos", "1/8").replace("Cuartos", "1/4")}
-                  </button>
-                ))}
-              </div>
               {knockoutRounds.map((roundName) => {
                 const roundMatches = (knockoutMatchesByPhase[roundName] ?? []).sort((a, b) => a.id - b.id);
                 return (

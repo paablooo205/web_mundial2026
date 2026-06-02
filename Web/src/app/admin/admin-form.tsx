@@ -531,6 +531,22 @@ export function AdminForm({
                 </div>
               </div>
 
+              <div className="subtabs-container" style={{ marginBottom: "16px" }}>
+                {knockoutRounds.map((round) => (
+                  <button
+                    key={round}
+                    type="button"
+                    className={`subtab-button ${realResultsKnockoutMode === "rondas" && activeKnockoutRound === round ? "active" : ""}`}
+                    onClick={() => {
+                      setActiveKnockoutRound(round);
+                      setRealResultsKnockoutMode("rondas");
+                    }}
+                  >
+                    {round.replace(" de final", "").replace("Dieciseisavos", "1/16").replace("Octavos", "1/8").replace("Cuartos", "1/4")}
+                  </button>
+                ))}
+              </div>
+
               {realResultsKnockoutMode === "cuadro" && (
                 <div className="bracket-viewport" style={{ marginBottom: 24 }}>
                   <p className="bracket-viewport-hint muted">
@@ -571,18 +587,6 @@ export function AdminForm({
 
               {realResultsKnockoutMode === "rondas" && (
                 <>
-                  <div className="subtabs-container">
-                    {knockoutRounds.map((round) => (
-                      <button
-                        key={round}
-                        type="button"
-                        className={`subtab-button ${activeKnockoutRound === round ? "active" : ""}`}
-                        onClick={() => setActiveKnockoutRound(round)}
-                      >
-                        {round.replace(" de final", "").replace("Dieciseisavos", "1/16").replace("Octavos", "1/8").replace("Cuartos", "1/4")}
-                      </button>
-                    ))}
-                  </div>
 
                   {knockoutRounds.map((roundName) => {
                     const matchesInRound = knockoutMatchesByPhase[roundName] ?? [];
