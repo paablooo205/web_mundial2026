@@ -486,7 +486,7 @@ export function PlayerBetsViewer({
       {/* Pestaña: Eliminatorias */}
       {playerViewerTab === "eliminatorias" && (
         <div style={{ animation: "fadeIn 0.3s ease-out" }}>
-          <div className="admin-ko-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <div className="admin-ko-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "16px" }}>
             <h4 className="phase-title" style={{ margin: 0, paddingLeft: "12px", borderLeft: "3px solid var(--usa-red-bright)" }}>
               Eliminatorias — {selectedPlayerName}
             </h4>

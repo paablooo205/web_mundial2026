@@ -583,7 +583,18 @@ input::placeholder {
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
-  flex-wrap: wrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabs-container::-webkit-scrollbar {
+  height: 3px;
+}
+
+.tabs-container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
 }
 
 .tab-button {
