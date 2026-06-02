@@ -3,7 +3,7 @@ import { Outfit } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
-
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { HeaderClient } from "./header-client";
 import { KickoffModal } from "./kickoff-modal";
 
@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         <KickoffModal />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
