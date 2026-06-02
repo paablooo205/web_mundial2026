@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import {
   groupCodes as BRACKET_GROUP_CODES,
   isBracketSlotResolved,
@@ -537,12 +538,31 @@ export function AdminForm({
                     editando partido a partido en «Introducir por ronda».
                   </p>
                   <div className="bracket-wrapper bracket-wrapper--embedded">
-                    <RealKnockoutBracket
-                      resolved={realKnockoutBracket.resolved}
-                      scores={realScores}
-                      teams={teams}
-                      getWinnerTeamId={getRealWinnerTeamId}
-                    />
+                    <TransformWrapper
+                      initialScale={1}
+                      minScale={0.3}
+                      maxScale={3}
+                      centerOnInit={true}
+                      wheel={{ step: 0.1 }}
+                    >
+                      {({ zoomIn, zoomOut, resetTransform }) => (
+                        <>
+                          <div style={{ position: "absolute", top: "16px", right: "16px", zIndex: 10, display: "flex", gap: "8px" }}>
+                            <button type="button" className="button" style={{ padding: "4px 8px", fontSize: "12px", minHeight: "24px" }} onClick={() => zoomIn()}>+</button>
+                            <button type="button" className="button" style={{ padding: "4px 8px", fontSize: "12px", minHeight: "24px" }} onClick={() => zoomOut()}>-</button>
+                            <button type="button" className="button" style={{ padding: "4px 8px", fontSize: "12px", minHeight: "24px" }} onClick={() => resetTransform()}>⟲</button>
+                          </div>
+                          <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%" }}>
+                            <RealKnockoutBracket
+                              resolved={realKnockoutBracket.resolved}
+                              scores={realScores}
+                              teams={teams}
+                              getWinnerTeamId={getRealWinnerTeamId}
+                            />
+                          </TransformComponent>
+                        </>
+                      )}
+                    </TransformWrapper>
                   </div>
                 </div>
               )}

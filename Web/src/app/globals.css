@@ -957,13 +957,18 @@ input::placeholder {
 }
 
 .bracket-wrapper {
-  overflow-x: auto;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: rgba(0, 0, 0, 0.15);
-  padding: 20px;
   margin-bottom: 24px;
-  -webkit-overflow-scrolling: touch;
+  position: relative;
+  width: 100%;
+  cursor: grab;
+}
+
+.bracket-wrapper:active {
+  cursor: grabbing;
 }
 
 .bracket-wrapper--embedded {
@@ -971,6 +976,9 @@ input::placeholder {
   border: 0;
   border-radius: 0;
   background: transparent;
+}
+
+.bracket-wrapper--embedded .bracket-grid {
   padding: 12px;
 }
 
@@ -980,6 +988,7 @@ input::placeholder {
   align-items: stretch;
   gap: 14px;
   min-width: max-content;
+  padding: 30px;
 }
 
 .bracket-grid--compact {

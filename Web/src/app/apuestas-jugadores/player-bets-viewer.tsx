@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import {
   groupCodes as BRACKET_GROUP_CODES,
   isBracketSlotResolved,
@@ -548,7 +549,22 @@ export function PlayerBetsViewer({
                 Desliza dentro del recuadro para ver todo el cuadro simulado de este jugador.
               </p>
               <div className="bracket-wrapper bracket-wrapper--embedded">
-                <div className="bracket-grid bracket-grid--compact">
+                <TransformWrapper
+                  initialScale={1}
+                  minScale={0.3}
+                  maxScale={3}
+                  centerOnInit={true}
+                  wheel={{ step: 0.1 }}
+                >
+                  {({ zoomIn, zoomOut, resetTransform }) => (
+                    <>
+                      <div style={{ position: "absolute", top: "16px", right: "16px", zIndex: 10, display: "flex", gap: "8px" }}>
+                        <button type="button" className="button" style={{ padding: "4px 8px", fontSize: "12px", minHeight: "24px" }} onClick={() => zoomIn()}>+</button>
+                        <button type="button" className="button" style={{ padding: "4px 8px", fontSize: "12px", minHeight: "24px" }} onClick={() => zoomOut()}>-</button>
+                        <button type="button" className="button" style={{ padding: "4px 8px", fontSize: "12px", minHeight: "24px" }} onClick={() => resetTransform()}>⟲</button>
+                      </div>
+                      <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%" }}>
+                        <div className="bracket-grid bracket-grid--compact">
                   
                   {/* Lado Izquierdo del Cuadro */}
                   <div className="bracket-side bracket-side-left">
@@ -820,7 +836,11 @@ export function PlayerBetsViewer({
                     </div>
                   </div>
 
-                </div>
+                        </div>
+                      </TransformComponent>
+                    </>
+                  )}
+                </TransformWrapper>
               </div>
             </div>
           )}
