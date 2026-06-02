@@ -446,7 +446,7 @@ export function AdminForm({
             </div>
 
             {/* Fase de Grupos */}
-            <div style={{ display: activeTab === "grupos" ? "block" : "none" }}>
+            <div style={{ display: activeTab === "grupos" ? "block" : "none", minWidth: 0, maxWidth: "100%" }}>
               <div className="subtabs-container">
                 {groupCodes.map((g) => (
                   <button key={g} type="button" className={`subtab-button ${activeGroup === g ? "active" : ""}`} onClick={() => setActiveGroup(g)}>
@@ -503,7 +503,7 @@ export function AdminForm({
             </div>
 
             {/* Eliminatorias */}
-            <div style={{ display: activeTab === "eliminatorias" ? "block" : "none" }}>
+            <div style={{ display: activeTab === "eliminatorias" ? "block" : "none", minWidth: 0, maxWidth: "100%" }}>
               <div className="admin-ko-toolbar" style={{ marginBottom: 16 }}>
                 <div>
                   <h4 className="phase-title" style={{ margin: 0, border: 0, padding: 0 }}>

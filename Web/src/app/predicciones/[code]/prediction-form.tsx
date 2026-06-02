@@ -607,7 +607,7 @@ export function PredictionForm({
       </div>
 
       {/* ════════════════ 1. PHASE: GRUPOS ════════════════ */}
-      <div style={{ display: activeTab === "grupos" ? "block" : "none" }}>
+      <div style={{ display: activeTab === "grupos" ? "block" : "none", minWidth: 0, maxWidth: "100%" }}>
         <div className="subtabs-container">
           {groupCodes.map((g) => (
             <button key={g} type="button" className={`subtab-button ${activeGroup === g ? "active" : ""}`} onClick={() => setActiveGroup(g)}>
@@ -706,7 +706,7 @@ export function PredictionForm({
       </div>
 
       {/* ════════════════ 2. PHASE: ELIMINATORIAS ════════════════ */}
-      <div style={{ display: activeTab === "eliminatorias" ? "block" : "none" }}>
+      <div style={{ display: activeTab === "eliminatorias" ? "block" : "none", minWidth: 0, maxWidth: "100%" }}>
         
         {/* Toggle between Tree/Bracket and List Views */}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "16px" }}>

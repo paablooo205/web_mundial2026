@@ -67,7 +67,7 @@ export function ClubSelectoClientWrapper({
   const [activeTab, setActiveTab] = useState<"estadisticas" | "visor">("estadisticas");
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", minWidth: 0, maxWidth: "100%" }}>
       {/* Controles superiores para cambiar entre Estadísticas y Visor */}
       <div className="tabs-container admin-player-tabs" style={{ marginBottom: "0" }}>
         <button

@@ -299,7 +299,7 @@ export function PlayerBetsViewer({
   }
 
   return (
-    <div className="admin-dashboard-layout" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
+    <div className="admin-dashboard-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "24px", minWidth: 0 }}>
       {/* Barra de Selección de Jugador Premium */}
       <div className="admin-player-toolbar panel" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px", padding: "20px 24px" }}>
         <div className="admin-player-toolbar__info">
@@ -444,7 +444,7 @@ export function PlayerBetsViewer({
 
       {/* Pestaña: Grupos */}
       {playerViewerTab === "grupos" && (
-        <div style={{ animation: "fadeIn 0.3s ease-out" }}>
+        <div style={{ animation: "fadeIn 0.3s ease-out", minWidth: 0, maxWidth: "100%" }}>
           <h4 className="phase-title" style={{ marginBottom: "16px", paddingLeft: "12px", borderLeft: "3px solid var(--usa-red-bright)" }}>Fase de grupos — {selectedPlayerName}</h4>
           <div className="subtabs-container">
             {groupCodes.map((g) => (
@@ -485,7 +485,7 @@ export function PlayerBetsViewer({
 
       {/* Pestaña: Eliminatorias */}
       {playerViewerTab === "eliminatorias" && (
-        <div style={{ animation: "fadeIn 0.3s ease-out" }}>
+        <div style={{ animation: "fadeIn 0.3s ease-out", minWidth: 0, maxWidth: "100%" }}>
           <div className="admin-ko-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "16px" }}>
             <h4 className="phase-title" style={{ margin: 0, paddingLeft: "12px", borderLeft: "3px solid var(--usa-red-bright)" }}>
               Eliminatorias — {selectedPlayerName}
