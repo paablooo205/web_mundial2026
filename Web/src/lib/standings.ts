@@ -1,5 +1,6 @@
 import { createServiceClient } from "./supabase";
 import { isDoubleScoringPhase, resolveActualWinner, scoreKnockoutMatch } from "./knockout-scoring";
+import { KNOCKOUT_ROUND_ORDER } from "./knockout-bracket";
 import { defaultScoringConfig, normalizePersonName, scoreMatch } from "./scoring";
 
 type PredictionRow = {
@@ -24,24 +25,35 @@ type MatchRow = {
   phase: string;
   home_team_id: number | null;
   away_team_id: number | null;
+  kickoff_at: string | null;
 };
 
 export async function recalculateStandings() {
   const supabase = createServiceClient();
-  const [{ data: players }, { data: predictions }, { data: results }, { data: matches }, { data: specials }, { data: awards }] =
+  const [{ data: players }, { data: predictions }, { data: results }, { data: matches }, { data: specials }, { data: awards }, { data: teams }] =
     await Promise.all([
       supabase.from("players").select("id, display_name"),
       supabase.from("predictions").select("*"),
       supabase.from("match_results").select("match_id, home_goals, away_goals, winner_team_id").eq("status", "finished"),
-      supabase.from("matches").select("id, phase, home_team_id, away_team_id"),
+      supabase.from("matches").select("id, phase, home_team_id, away_team_id, kickoff_at"),
       supabase.from("special_predictions").select("*"),
-      supabase.from("tournament_awards").select("*").eq("id", 1).maybeSingle()
+      supabase.from("tournament_awards").select("*").eq("id", 1).maybeSingle(),
+      supabase.from("teams").select("id, canonical_name")
     ]);
 
   const resultsByMatch = new Map((results ?? []).map((row: ResultRow) => [row.match_id, row]));
   const matchById = new Map((matches ?? []).map((row: MatchRow) => [row.id, row]));
   const specialsByPlayer = new Map((specials ?? []).map((row) => [row.player_id, row]));
   const standings = [];
+
+  const spainTeam = (teams ?? []).find(t => t.canonical_name === "España");
+  const spainTeamId = spainTeam?.id;
+
+  // Encontrar el partido inaugural (el primero cronológicamente o por defecto el id 1)
+  const sortedMatches = [...(matches ?? [])]
+    .filter(m => m.kickoff_at)
+    .sort((a, b) => new Date(a.kickoff_at!).getTime() - new Date(b.kickoff_at!).getTime());
+  const openingMatchId = sortedMatches.length > 0 ? sortedMatches[0].id : 1;
 
   for (const player of players ?? []) {
     let total = 0;
@@ -58,6 +70,18 @@ export async function recalculateStandings() {
       const match = matchById.get(prediction.match_id);
       if (!match) continue;
 
+      let multiplier = 1;
+      if (match.id === openingMatchId || match.id === 1) {
+        multiplier = 2;
+      } else if (match.phase === "Semifinales" || match.phase === "Final") {
+        multiplier = 2;
+      } else {
+        const isGroupStage = !KNOCKOUT_ROUND_ORDER.includes(match.phase as any);
+        if (isGroupStage && spainTeamId && (match.home_team_id === spainTeamId || match.away_team_id === spainTeamId)) {
+          multiplier = 2;
+        }
+      }
+
       if (isDoubleScoringPhase(match.phase)) {
         const actualWinner = resolveActualWinner(result, match);
         const scored = scoreKnockoutMatch({
@@ -70,17 +94,17 @@ export async function recalculateStandings() {
           actualAwayTeamId: match.away_team_id,
           actualWinnerTeamId: actualWinner
         });
-        total += scored.points;
-        if (scored.exact) exactScores += 1;
-        if (scored.correctSign) correctSigns += 1;
-        if (scored.goalDifferenceHit) goalDifferenceHits += 1;
-        if (scored.advancementHit) advancementHits += 1;
+        total += scored.points * multiplier;
+        if (scored.exact) exactScores += 1 * multiplier;
+        if (scored.correctSign) correctSigns += 1 * multiplier;
+        if (scored.goalDifferenceHit) goalDifferenceHits += 1 * multiplier;
+        if (scored.advancementHit) advancementHits += 1 * multiplier;
       } else {
         const scored = scoreMatch(prediction, result);
-        total += scored.points;
-        if (scored.exact) exactScores += 1;
-        if (scored.correctSign) correctSigns += 1;
-        if (scored.goalDifferenceHit) goalDifferenceHits += 1;
+        total += scored.points * multiplier;
+        if (scored.exact) exactScores += 1 * multiplier;
+        if (scored.correctSign) correctSigns += 1 * multiplier;
+        if (scored.goalDifferenceHit) goalDifferenceHits += 1 * multiplier;
       }
     }
 
@@ -102,6 +126,7 @@ export async function recalculateStandings() {
 
     standings.push({
       player_id: player.id,
+      display_name: player.display_name,
       total_points: total,
       exact_scores: exactScores,
       correct_signs: correctSigns,
