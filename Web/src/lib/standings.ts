@@ -71,7 +71,7 @@ export async function recalculateStandings() {
       if (!match) continue;
 
       let multiplier = 1;
-      if (match.id === openingMatchId || match.id === 1) {
+      if (match.id === openingMatchId) {
         multiplier = 2;
       } else if (match.phase === "Semifinales" || match.phase === "Final") {
         multiplier = 2;

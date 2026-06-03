@@ -231,6 +231,37 @@ export function AdminForm({
     }
   };
 
+  const clearMatchResult = async (matchId: number) => {
+    if (!confirm(`¿Borrar el resultado del Partido ${matchId}? Los puntos de los jugadores se recalcularán.`)) return;
+    setSavingId(matchId);
+    setGlobalMessage(null);
+    try {
+      const response = await fetch("/api/results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          matchId,
+          homeGoals: "",
+          awayGoals: "",
+          status: "scheduled",
+          winnerTeamId: null,
+          homeTeamId: teams.find((t) => t.canonical_name === matches.find((m) => m.id === matchId)?.home_team_name)?.id ?? null,
+          awayTeamId: teams.find((t) => t.canonical_name === matches.find((m) => m.id === matchId)?.away_team_name)?.id ?? null
+        }),
+      });
+      if (response.ok) {
+        setRealScores(prev => ({ ...prev, [matchId]: { home: "", away: "", winner: "" } }));
+        setGlobalMessage(`✅ Resultado del Partido ${matchId} borrado. ¡Clasificación recalculada!`);
+      } else {
+        setGlobalMessage("❌ No se pudo borrar el resultado.");
+      }
+    } catch {
+      setGlobalMessage("❌ Error de red.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const saveSpecialAwards = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSavingAwards(true);
@@ -462,8 +493,10 @@ export function AdminForm({
                   <div key={groupCode} className="phase-group" style={{ display: activeGroup === groupCode ? "block" : "none" }}>
                     <h3 className="phase-title">Resultados Reales del Grupo {groupCode}</h3>
                     <section className="panel">
-                      {groupMatches.map((match) => (
-                        <div className="match-row" key={match.id} style={{ gridTemplateColumns: "1fr 88px 88px 120px", gap: "16px" }}>
+                      {groupMatches.map((match) => {
+                          const hasResult = realScores[match.id]?.home !== "" && realScores[match.id]?.away !== "";
+                          return (
+                        <div className="match-row" key={match.id} style={{ gridTemplateColumns: "1fr 88px 88px auto auto", gap: "16px" }}>
                           <div className="team-names">
                             <strong>{match.home_team_name ?? "Por decidir"}</strong>
                             <span className="muted">vs</span>
@@ -494,8 +527,20 @@ export function AdminForm({
                           >
                             {savingId === match.id ? "Guardando..." : "Guardar"}
                           </button>
+                          {hasResult && (
+                            <button
+                              type="button"
+                              className="button"
+                              style={{ minHeight: "44px", color: "var(--usa-red-bright)", borderColor: "var(--usa-red-bright)" }}
+                              disabled={savingId === match.id}
+                              onClick={() => clearMatchResult(match.id)}
+                            >
+                              Borrar
+                            </button>
+                          )}
                         </div>
-                      ))}
+                          );
+                        })}
                     </section>
                   </div>
                 );
@@ -610,7 +655,7 @@ export function AdminForm({
                                 const awayTeamObj = teams.find((t) => t.canonical_name === resolvedAway);
 
                                 return (
-                                  <div className="match-row admin-result-entry" key={`entry-${match.id}`} style={{ gridTemplateColumns: "1fr 88px 88px 120px", gap: "16px" }}>
+                                  <div className="match-row admin-result-entry" key={`entry-${match.id}`} style={{ gridTemplateColumns: "1fr 88px 88px auto auto", gap: "16px" }}>
                                     <div className="team-names">
                                       <strong>{resolvedHome}</strong>
                                       <span className="muted">vs</span>
@@ -642,6 +687,17 @@ export function AdminForm({
                                     >
                                       {savingId === match.id ? "Guardando..." : "Guardar"}
                                     </button>
+                                    {(realScores[match.id]?.home !== "" && realScores[match.id]?.away !== "") && (
+                                      <button
+                                        type="button"
+                                        className="button"
+                                        style={{ minHeight: "44px", color: "var(--usa-red-bright)", borderColor: "var(--usa-red-bright)" }}
+                                        disabled={savingId === match.id}
+                                        onClick={() => clearMatchResult(match.id)}
+                                      >
+                                        Borrar
+                                      </button>
+                                    )}
 
                                     {isDraw && homeTeamObj && awayTeamObj && (
                                       <div className="penalty-selector" style={{ gridColumn: "1 / span 4", marginTop: "8px" }}>

@@ -42,12 +42,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
       }
 
+      // Si los goles están vacíos, el partido vuelve a "scheduled" (sin puntuar)
+      const hasScore = homeGoals !== "" && awayGoals !== "";
+      const resolvedStatus = hasScore ? "finished" : "scheduled";
+
       const { error } = await supabase.from("match_results").upsert({
         match_id: Number(matchId),
-        home_goals: homeGoals === "" ? null : Number(homeGoals),
-        away_goals: awayGoals === "" ? null : Number(awayGoals),
-        status: status || "finished",
-        winner_team_id: winnerTeamId ? Number(winnerTeamId) : null,
+        home_goals: hasScore ? Number(homeGoals) : null,
+        away_goals: hasScore ? Number(awayGoals) : null,
+        status: resolvedStatus,
+        winner_team_id: hasScore && winnerTeamId ? Number(winnerTeamId) : null,
         source: "admin-manual",
         updated_at: new Date().toISOString()
       });
