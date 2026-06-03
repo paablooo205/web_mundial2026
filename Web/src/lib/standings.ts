@@ -26,6 +26,7 @@ type MatchRow = {
   home_team_id: number | null;
   away_team_id: number | null;
   kickoff_at: string | null;
+  excel_match_key: string | null;
 };
 
 export async function recalculateStandings() {
@@ -35,7 +36,7 @@ export async function recalculateStandings() {
       supabase.from("players").select("id, display_name"),
       supabase.from("predictions").select("*"),
       supabase.from("match_results").select("match_id, home_goals, away_goals, winner_team_id").eq("status", "finished"),
-      supabase.from("matches").select("id, phase, home_team_id, away_team_id, kickoff_at"),
+      supabase.from("matches").select("id, phase, home_team_id, away_team_id, kickoff_at, excel_match_key"),
       supabase.from("special_predictions").select("*"),
       supabase.from("tournament_awards").select("*").eq("id", 1).maybeSingle(),
       supabase.from("teams").select("id, canonical_name")
@@ -71,15 +72,20 @@ export async function recalculateStandings() {
       if (!match) continue;
 
       let multiplier = 1;
+      const isGroupStage = !KNOCKOUT_ROUND_ORDER.includes(match.phase as any);
+
       if (match.id === openingMatchId) {
+        // Partido inaugural: x2
         multiplier = 2;
       } else if (match.phase === "Semifinales" || match.phase === "Final") {
+        // Semifinales y Final: x2
         multiplier = 2;
-      } else {
-        const isGroupStage = !KNOCKOUT_ROUND_ORDER.includes(match.phase as any);
-        if (isGroupStage && spainTeamId && (match.home_team_id === spainTeamId || match.away_team_id === spainTeamId)) {
-          multiplier = 2;
-        }
+      } else if (isGroupStage && match.excel_match_key && /^[A-L]3/.test(match.excel_match_key)) {
+        // Jornada 3 de grupos (cierres simultáneos): x2
+        multiplier = 2;
+      } else if (isGroupStage && spainTeamId && (match.home_team_id === spainTeamId || match.away_team_id === spainTeamId)) {
+        // Partidos de España en fase de grupos: x2
+        multiplier = 2;
       }
 
       if (isDoubleScoringPhase(match.phase)) {
