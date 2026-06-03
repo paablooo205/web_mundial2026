@@ -2,7 +2,7 @@ import { getPublicStandings } from "@/lib/queries";
 import { PlayerAvatar } from "./player-avatar";
 import { ScoringSystemModal } from "./scoring-system-modal";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 function signHitsOnly(exactScores: number, correctSigns: number) {
   return Math.max(0, correctSigns - exactScores);

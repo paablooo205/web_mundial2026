@@ -79,6 +79,10 @@ export async function POST(request: Request) {
     const newStandings = await recalculateStandings();
 
     revalidatePath("/", "layout");
+    revalidatePath("/clasificacion");
+    revalidatePath("/admin");
+    revalidatePath("/resultados");
+    revalidatePath("/resultado-final");
 
     return NextResponse.json({ ok: true, standingsCount: newStandings.length });
   } catch (err: any) {

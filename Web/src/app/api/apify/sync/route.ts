@@ -20,6 +20,10 @@ export async function POST(request: Request) {
   await recalculateStandings();
 
   revalidatePath("/", "layout");
+  revalidatePath("/clasificacion");
+  revalidatePath("/admin");
+  revalidatePath("/resultados");
+  revalidatePath("/resultado-final");
 
   return NextResponse.json({ ok: true, matchesSeen: liveMatches.length, updated: sync.updated, errors: sync.errors });
 }
