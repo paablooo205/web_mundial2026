@@ -50,6 +50,31 @@ export function ScoringSystemModal() {
                 </ul>
               </section>
 
+              <section>
+                <h3>🔥 Partidos con Puntuación Doble (×2)</h3>
+                <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "12px", lineHeight: "1.5" }}>
+                  En los siguientes partidos, <strong style={{ color: "var(--usa-white)" }}>todos los puntos se multiplican por 2</strong>. Ejemplo: un pleno vale 10 pts en lugar de 5.
+                </p>
+                <ul>
+                  <li>
+                    <strong>🏟️ Partido inaugural</strong> <span className="pts-double">×2</span>
+                    <em>México vs. Sudáfrica (el primer partido del Mundial)</em>
+                  </li>
+                  <li>
+                    <strong>🇪🇸 España en Fase de Grupos</strong> <span className="pts-double">×2</span>
+                    <em>Los 3 partidos de España en la fase de grupos</em>
+                  </li>
+                  <li>
+                    <strong>📅 Jornada 3 de Grupos</strong> <span className="pts-double">×2</span>
+                    <em>Los 24 partidos del cierre simultáneo de cada grupo (24–28 jun)</em>
+                  </li>
+                  <li>
+                    <strong>🏆 Semifinales y Final</strong> <span className="pts-double">×2</span>
+                    <em>Los 2 partidos de semifinales y la gran final</em>
+                  </li>
+                </ul>
+              </section>
+
               <div className="note muted">
                 <strong>Nota sobre Eliminatorias:</strong> Los partidos que van a prórroga o penaltis se puntúan en base al resultado <strong>al final de los 120 minutos</strong> para el marcador, pero la clasificación y el avance se determinan por quién gane la tanda de penaltis.
               </div>
@@ -144,6 +169,18 @@ export function ScoringSystemModal() {
           font-weight: 700;
           font-size: 0.85rem;
           border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .pts-double {
+          display: inline-block;
+          background: rgba(251, 146, 60, 0.2);
+          color: #fb923c;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-weight: 800;
+          font-size: 0.85rem;
+          border: 1px solid rgba(251, 146, 60, 0.4);
+          margin-left: 6px;
         }
 
         .note {
