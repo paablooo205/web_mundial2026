@@ -126,7 +126,6 @@ export async function recalculateStandings() {
 
     standings.push({
       player_id: player.id,
-      display_name: player.display_name,
       total_points: total,
       exact_scores: exactScores,
       correct_signs: correctSigns,
@@ -156,7 +155,11 @@ export async function recalculateStandings() {
   const ranked = standings.map((row, index) => ({ ...row, position: index + 1 }));
 
   if (ranked.length) {
-    await supabase.from("standings").upsert(ranked, { onConflict: "player_id" });
+    const { error: upsertError } = await supabase.from("standings").upsert(ranked, { onConflict: "player_id" });
+    if (upsertError) {
+      console.error("[recalculateStandings] upsert error:", upsertError);
+      throw new Error(upsertError.message);
+    }
   }
 
   return ranked;
