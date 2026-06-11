@@ -67,7 +67,6 @@ type Props = {
   awards: TournamentAwards;
 };
 
-const groupStageMatchesPhase = "Fase de Grupos";
 
 export function ResultadosClient({ matches, teams, results, awards }: Props) {
   const [activeTab, setActiveTab] = useState<"grupos" | "eliminatorias">("grupos");
