@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatMatchDate } from "@/lib/date-utils";
 
 import {
@@ -38,6 +38,28 @@ type TournamentAwards = {
   golden_ball_name: string | null;
 } | null;
 
+const groupStageMatchesPhase = "Fase de Grupos";
+
+const getMatchStatusInfo = (resStatus: string | undefined, kickoffAt: string | null, currentTime: number) => {
+  if (resStatus === "finished") return { text: "Finalizado", className: "score-status--finished" };
+  if (resStatus === "live") return { text: "En Vivo", className: "score-status--live" };
+
+  if (kickoffAt) {
+    const kickoffTime = new Date(kickoffAt).getTime();
+    const diffMs = currentTime - kickoffTime;
+
+    if (diffMs >= 0) {
+      if (diffMs < 120 * 60 * 1000) {
+        return { text: "Jugando...", className: "score-status--live" };
+      } else {
+        return { text: "Finalizado", className: "score-status--finished" };
+      }
+    }
+  }
+
+  return { text: "Programado", className: "score-status--scheduled" };
+};
+
 type Props = {
   matches: Match[];
   teams: Team[];
@@ -51,6 +73,14 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
   const [activeTab, setActiveTab] = useState<"grupos" | "eliminatorias">("grupos");
   const [activeGroup, setActiveGroup] = useState<string>("A");
   const [activeRound, setActiveRound] = useState<string>("Dieciseisavos de final");
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const knockoutRounds = [
     { key: "Dieciseisavos de final", label: "1/16 de Final" },
@@ -571,8 +601,7 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
                 {getMatchesForGroup(activeGroup).map((match) => {
                   const score = scores[match.id];
                   const res = results.find((r) => r.match_id === match.id);
-                  const isFinished = res?.status === "finished";
-                  const isLive = res?.status === "live";
+                  const statusInfo = getMatchStatusInfo(res?.status, match.kickoff_at, currentTime);
 
                   const scoreText =
                     score && score.home !== "" && score.away !== "" ? (
@@ -596,18 +625,10 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
                       {/* Marcador e Info */}
                       <div className="match-score-center">
                         {scoreText}
-                        <span
-                          className={`score-status ${
-                            isFinished
-                              ? "score-status--finished"
-                              : isLive
-                              ? "score-status--live"
-                              : "score-status--scheduled"
-                          }`}
-                        >
-                          {isFinished ? "Finalizado" : isLive ? "En Vivo" : "Programado"}
+                        <span className={`score-status ${statusInfo.className}`}>
+                          {statusInfo.text}
                         </span>
-                        {formatMatchDate(match.kickoff_at) && (
+                        {formatMatchDate(match.kickoff_at) && statusInfo.text === "Programado" && (
                           <span className="match-kickoff-time">
                             🕐 {formatMatchDate(match.kickoff_at)}
                           </span>
@@ -676,8 +697,7 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
                 {getMatchesForRound(activeRound).map((match) => {
                   const score = scores[match.id];
                   const res = results.find((r) => r.match_id === match.id);
-                  const isFinished = res?.status === "finished";
-                  const isLive = res?.status === "live";
+                  const statusInfo = getMatchStatusInfo(res?.status, match.kickoff_at, currentTime);
 
                   const resolvedHome = bracketData.resolved[match.id]?.home ?? match.home_team_name ?? "Por decidir";
                   const resolvedAway = bracketData.resolved[match.id]?.away ?? match.away_team_name ?? "Por decidir";
@@ -710,18 +730,10 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
                       {/* Marcador e Info */}
                       <div className="match-score-center">
                         {scoreText}
-                        <span
-                          className={`score-status ${
-                            isFinished
-                              ? "score-status--finished"
-                              : isLive
-                              ? "score-status--live"
-                              : "score-status--scheduled"
-                          }`}
-                        >
-                          {isFinished ? "Finalizado" : isLive ? "En Vivo" : "Programado"}
+                        <span className={`score-status ${statusInfo.className}`}>
+                          {statusInfo.text}
                         </span>
-                        {formatMatchDate(match.kickoff_at) && (
+                        {formatMatchDate(match.kickoff_at) && statusInfo.text === "Programado" && (
                           <span className="match-kickoff-time">
                             🕐 {formatMatchDate(match.kickoff_at)}
                           </span>
