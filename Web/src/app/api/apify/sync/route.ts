@@ -7,6 +7,14 @@ import { revalidatePath } from "next/cache";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  return handleSync(request);
+}
+
+export async function GET(request: Request) {
+  return handleSync(request);
+}
+
+async function handleSync(request: Request) {
   const authHeader = request.headers.get("authorization");
   const bearerSecret = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
   const secret =

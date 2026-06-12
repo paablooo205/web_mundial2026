@@ -125,6 +125,13 @@ function ChartTooltipContent({
     indicator?: "line" | "dot" | "dashed"
     nameKey?: string
     labelKey?: string
+    payload?: any[]
+    label?: any
+    active?: boolean
+    formatter?: any
+    labelFormatter?: any
+    labelClassName?: string
+    color?: string
   }) {
   const { config } = useChart()
 
@@ -256,10 +263,11 @@ function ChartLegendContent({
   payload,
   verticalAlign = "bottom",
   nameKey,
-}: React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+}: React.ComponentProps<"div"> & {
     hideIcon?: boolean
     nameKey?: string
+    payload?: any[]
+    verticalAlign?: any
   }) {
   const { config } = useChart()
 
