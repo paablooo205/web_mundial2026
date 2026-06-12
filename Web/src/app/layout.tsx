@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import Link from "next/link";
+import { Suspense } from "react";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { HeaderClient } from "./header-client";
 import { KickoffModal } from "./kickoff-modal";
+import { UpcomingMatchesServer } from "./upcoming-matches-server";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -27,6 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </div>
         <KickoffModal />
+        <Suspense fallback={null}>
+          <UpcomingMatchesServer />
+        </Suspense>
         <Analytics />
         <SpeedInsights />
       </body>
