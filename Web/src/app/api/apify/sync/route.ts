@@ -23,15 +23,20 @@ async function handleSync(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const liveMatches = await fetchLiveMatches();
-  const sync = await syncLiveResults(liveMatches);
-  await recalculateStandings();
+  try {
+    const liveMatches = await fetchLiveMatches();
+    const sync = await syncLiveResults(liveMatches);
+    await recalculateStandings();
 
-  revalidatePath("/", "layout");
-  revalidatePath("/clasificacion");
-  revalidatePath("/admin");
-  revalidatePath("/resultados");
-  revalidatePath("/resultado-final");
+    revalidatePath("/", "layout");
+    revalidatePath("/clasificacion");
+    revalidatePath("/admin");
+    revalidatePath("/resultados");
+    revalidatePath("/resultado-final");
 
-  return NextResponse.json({ ok: true, matchesSeen: liveMatches.length, updated: sync.updated, errors: sync.errors });
+    return NextResponse.json({ ok: true, matchesSeen: liveMatches.length, updated: sync.updated, errors: sync.errors });
+  } catch (error: any) {
+    console.error("[Cron Sync Error]:", error);
+    return NextResponse.json({ ok: false, error: error.message || String(error) }, { status: 500 });
+  }
 }
