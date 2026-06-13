@@ -8,7 +8,7 @@ export async function fetchLiveMatches(): Promise<FlashscoreLiveMatch[]> {
 
   const actor = (process.env.APIFY_LIVE_ACTOR ?? "statanow/flashscore-scraper-live").replace("/", "~");
   const response = await fetch(
-    `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${token}`,
+    `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${token}&maxItems=1000`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
