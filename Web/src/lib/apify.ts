@@ -7,12 +7,10 @@ export async function fetchLiveMatches(): Promise<FlashscoreLiveMatch[]> {
   }
 
   // World Cup 2026 League ID is 1
-  // We fetch fixtures for the current date. In a real scenario you might fetch live or recent ones.
-  // We can fetch by date to get today's matches.
-  const today = new Date().toISOString().split("T")[0];
-  
+  // Obtenemos TODOS los partidos del Mundial 2026 (pasados, presentes y futuros)
+  // para asegurarnos de que si falló algún día anterior, se sincronice todo lo atrasado.
   const response = await fetch(
-    `https://v3.football.api-sports.io/fixtures?league=1&season=2026&date=${today}`,
+    `https://v3.football.api-sports.io/fixtures?league=1&season=2026`,
     {
       method: "GET",
       headers: {
