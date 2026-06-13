@@ -177,9 +177,9 @@ export function AdminForm({
       const data = await response.json();
 
       if (response.ok) {
-        setGlobalMessage(`✅ Sincronización completada. Se procesaron ${data.matchesSeen} partidos de Flashscore. Clasificación de jugadores actualizada.`);
-        window.location.reload();
-      } else {
+        setGlobalMessage(`✅ Sincronización completada. Se procesaron ${data.matchesSeen} partidos. (Si pone 0, lee el mensaje abajo)`);
+        // We do NOT use window.location.reload() anymore so the message stays on screen.
+        // The API route already called revalidatePath, so a soft refresh is enough to see new data.
         setGlobalMessage(`❌ Sincronización fallida: ${data.error || "Error desconocido"}`);
       }
     } catch (err: any) {
