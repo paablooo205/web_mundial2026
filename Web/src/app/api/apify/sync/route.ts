@@ -5,6 +5,7 @@ import { recalculateStandings } from "@/lib/standings";
 import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   return handleSync(request);
