@@ -17,17 +17,18 @@ export async function syncLiveResults(matches: FlashscoreLiveMatch[]) {
       continue;
     }
 
-    // Buscar por flashscore_name en teams, luego cruzar con matches
     const { data: homeTeam } = await supabase
       .from("teams")
       .select("id")
-      .ilike("flashscore_name", match.home_team ?? "")
+      .or(`flashscore_name.ilike.%${match.home_team}%,canonical_name.ilike.%${match.home_team}%,canonical_name.ilike.%${(match.home_team || '').substring(0,4)}%`)
+      .limit(1)
       .maybeSingle();
 
     const { data: awayTeam } = await supabase
       .from("teams")
       .select("id")
-      .ilike("flashscore_name", match.away_team ?? "")
+      .or(`flashscore_name.ilike.%${match.away_team}%,canonical_name.ilike.%${match.away_team}%,canonical_name.ilike.%${(match.away_team || '').substring(0,4)}%`)
+      .limit(1)
       .maybeSingle();
 
     if (!homeTeam || !awayTeam) {
