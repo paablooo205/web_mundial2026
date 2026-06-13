@@ -80,12 +80,13 @@ export function UpcomingMatchesWidget({ matches }: Props) {
           border-radius: 16px;
           padding: 16px;
           width: 280px;
+          max-height: 70vh;
+          overflow-y: auto;
           box-shadow:
             0 24px 48px rgba(0, 0, 0, 0.6),
             0 0 0 1px rgba(255, 255, 255, 0.04) inset;
           transform-origin: bottom right;
           animation: panelIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-          overflow: hidden;
         }
 
         @keyframes panelIn {
@@ -251,7 +252,7 @@ export function UpcomingMatchesWidget({ matches }: Props) {
           <div className="upcoming-panel">
             <div className="upcoming-panel__header">
               <span style={{ fontSize: "1rem" }}>⚽</span>
-              <span className="upcoming-panel__title">Próximos Partidos</span>
+              <span className="upcoming-panel__title">Próximos Partidos (24h)</span>
             </div>
 
             {matches.map((match) => {
