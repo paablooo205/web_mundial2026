@@ -1,0 +1,16 @@
+name: Sincronizar Apify
+
+on:
+  schedule:
+    # Se ejecuta cada 15 minutos. 
+    # GitHub Actions puede tener un ligero retraso en momentos de alta carga.
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub si es necesario
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al endpoint de Vercel
+        run: |
+          curl -X POST "${{ secrets.PROD_URL }}/api/apify/sync?secret=${{ secrets.CRON_SECRET }}"

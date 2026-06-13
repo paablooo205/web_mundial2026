@@ -445,6 +445,25 @@ export function AdminForm({
                 <strong style={{ display: "block", fontSize: "32px", marginTop: "8px", fontWeight: "800" }}>{summary.results}</strong>
               </div>
             </div>
+
+            {/* Acciones Rápidas */}
+            <div className="panel" style={{ padding: "24px", borderLeft: "4px solid #10b981", display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ flex: "1 1 300px" }}>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "1.15rem", color: "var(--usa-white)" }}>Sincronización Automática Manual</h3>
+                <p className="muted" style={{ margin: 0, fontSize: "0.9rem", lineHeight: "1.5" }}>
+                  Ejecuta manualmente el Scraper de Apify para traer los últimos resultados desde Flashscore y actualizar las puntuaciones al instante.
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="button primary" 
+                style={{ minWidth: "200px", background: "#10b981", borderColor: "#10b981" }}
+                disabled={syncingApify}
+                onClick={triggerApifySync}
+              >
+                {syncingApify ? "Sincronizando..." : "Sincronizar Flashscore Ahora"}
+              </button>
+            </div>
           </div>
         )}
 
