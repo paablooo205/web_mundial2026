@@ -177,9 +177,9 @@ export function AdminForm({
       const data = await response.json();
 
       if (response.ok) {
-        setGlobalMessage(`✅ Sincronización completada. Se procesaron ${data.matchesSeen} partidos. (Si pone 0, lee el mensaje abajo)`);
+        setGlobalMessage(`✅ Sincronización completada. Se procesaron ${data.matchesSeen} partidos. (Si pone 0, el Mundial 2026 real aún no tiene partidos para hoy)`);
         // We do NOT use window.location.reload() anymore so the message stays on screen.
-        // The API route already called revalidatePath, so a soft refresh is enough to see new data.
+      } else {
         setGlobalMessage(`❌ Sincronización fallida: ${data.error || "Error desconocido"}`);
       }
     } catch (err: any) {
