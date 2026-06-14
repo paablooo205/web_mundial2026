@@ -252,7 +252,7 @@ export function UpcomingMatchesWidget({ matches }: Props) {
           <div className="upcoming-panel">
             <div className="upcoming-panel__header">
               <span style={{ fontSize: "1rem" }}>⚽</span>
-              <span className="upcoming-panel__title">Próximos Partidos (24h)</span>
+              <span className="upcoming-panel__title">Próximos Partidos</span>
             </div>
 
             {matches.map((match) => {
@@ -275,8 +275,11 @@ export function UpcomingMatchesWidget({ matches }: Props) {
                       {countdown}
                     </span>
                   </div>
-                  {match.stage && (
-                    <span className="upcoming-match__stage">{match.stage}</span>
+                  {(match.stage || match.group_code) && (
+                    <span className="upcoming-match__stage">
+                      {match.stage}
+                      {match.group_code && match.stage === "Fase de Grupos" && ` - Grupo ${match.group_code}`}
+                    </span>
                   )}
                 </div>
               );

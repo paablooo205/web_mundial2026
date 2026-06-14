@@ -6,14 +6,12 @@ export async function UpcomingMatchesServer() {
     const supabase = createServiceClient();
     const now = new Date();
     const nowStr = now.toISOString();
-    const next24hStr = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-
     const { data: matches } = await supabase
       .from("match_cards")
-      .select("id, home_team_name, away_team_name, kickoff_at, phase")
+      .select("id, home_team_name, away_team_name, kickoff_at, phase, group_code")
       .gt("kickoff_at", nowStr)
-      .lte("kickoff_at", next24hStr)
-      .order("kickoff_at", { ascending: true });
+      .order("kickoff_at", { ascending: true })
+      .limit(6);
 
     if (!matches || matches.length === 0) return null;
 
@@ -24,6 +22,7 @@ export async function UpcomingMatchesServer() {
       away_team: m.away_team_name ?? "Por decidir",
       kickoff_at: m.kickoff_at ?? "",
       stage: m.phase ?? undefined,
+      group_code: m.group_code ?? undefined,
     }));
 
     return <UpcomingMatchesWidget matches={mapped} />;
