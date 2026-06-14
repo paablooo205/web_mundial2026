@@ -1,6 +1,7 @@
 import { getPublicStandings } from "@/lib/queries";
 import { PlayerAvatar } from "./player-avatar";
 import { ScoringSystemModal } from "./scoring-system-modal";
+import { TxufoModal } from "./txufo-modal";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ export default async function ClasificacionPage() {
 
   return (
     <main className="page">
+      <TxufoModal />
       <div className="page-header">
         <div>
           <h1>Clasificación</h1>
