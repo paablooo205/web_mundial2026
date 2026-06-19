@@ -1,8 +1,10 @@
 import { createServiceClient } from "@/lib/supabase";
 import { UpcomingMatchesWidget } from "./upcoming-matches-widget";
 import { KNOCKOUT_ROUND_ORDER } from "@/lib/knockout-bracket";
+import { unstable_noStore as noStore } from "next/cache";
 
 export async function UpcomingMatchesServer() {
+  noStore();
   try {
     const supabase = createServiceClient();
     const now = new Date();
@@ -12,8 +14,18 @@ export async function UpcomingMatchesServer() {
 
     // Traer partidos recientes (en curso) + próximos
     const { data: matches } = await supabase
-      .from("match_cards")
-      .select("id, home_team_name, away_team_name, kickoff_at, phase, group_code, home_team_id, away_team_id, excel_match_key")
+      .from("matches")
+      .select(`
+        id,
+        kickoff_at,
+        phase,
+        group_code,
+        home_team_id,
+        away_team_id,
+        excel_match_key,
+        home_team:teams!home_team_id(canonical_name),
+        away_team:teams!away_team_id(canonical_name)
+      `)
       .gt("kickoff_at", threeHoursAgo)
       .order("kickoff_at", { ascending: true })
       .limit(6);
@@ -22,7 +34,7 @@ export async function UpcomingMatchesServer() {
 
     // Obtener el id del partido inaugural (el primero cronológicamente)
     const { data: allMatches } = await supabase
-      .from("match_cards")
+      .from("matches")
       .select("id, kickoff_at")
       .not("kickoff_at", "is", null)
       .order("kickoff_at", { ascending: true })
@@ -52,8 +64,10 @@ export async function UpcomingMatchesServer() {
 
       return {
         id: String(m.id),
-        home_team: m.home_team_name ?? "Por decidir",
-        away_team: m.away_team_name ?? "Por decidir",
+        // @ts-ignore
+        home_team: m.home_team?.canonical_name ?? "Por decidir",
+        // @ts-ignore
+        away_team: m.away_team?.canonical_name ?? "Por decidir",
         kickoff_at: m.kickoff_at ?? "",
         stage: m.phase ?? undefined,
         group_code: m.group_code ?? undefined,
