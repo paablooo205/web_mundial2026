@@ -9,6 +9,7 @@ type UpcomingMatch = {
   kickoff_at: string;
   stage?: string;
   group_code?: string;
+  hasMultiplier?: boolean;
 };
 
 type Props = {
@@ -182,6 +183,22 @@ export function UpcomingMatchesWidget({ matches }: Props) {
           border-color: rgba(220, 38, 38, 0.3);
         }
 
+        .upcoming-match__multiplier {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 0.65rem;
+          font-weight: 800;
+          padding: 2px 6px;
+          border-radius: 20px;
+          background: linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(217, 119, 6, 0.25) 100%);
+          color: #fbbf24;
+          border: 1px solid rgba(234, 179, 8, 0.4);
+          letter-spacing: 0.03em;
+          white-space: nowrap;
+          box-shadow: 0 0 8px rgba(234, 179, 8, 0.15);
+        }
+
         .upcoming-match__stage {
           font-size: 0.7rem;
           color: rgba(255,255,255,0.3);
@@ -271,9 +288,16 @@ export function UpcomingMatchesWidget({ matches }: Props) {
                     <span className="upcoming-match__datetime">
                       {date} · {time}
                     </span>
-                    <span className={`upcoming-match__countdown${isSoon ? " upcoming-match__countdown--soon" : ""}`}>
-                      {countdown}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      {match.hasMultiplier && (
+                        <span className="upcoming-match__multiplier">
+                          ⚡ ×2
+                        </span>
+                      )}
+                      <span className={`upcoming-match__countdown${isSoon ? " upcoming-match__countdown--soon" : ""}`}>
+                        {countdown}
+                      </span>
+                    </div>
                   </div>
                   {(match.stage || match.group_code) && (
                     <span className="upcoming-match__stage">
