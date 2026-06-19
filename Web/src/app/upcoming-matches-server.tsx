@@ -7,12 +7,14 @@ export async function UpcomingMatchesServer() {
     const supabase = createServiceClient();
     const now = new Date();
     const nowStr = now.toISOString();
+    // Ventana de 3 horas hacia atrás para incluir partidos en curso
+    const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
 
-    // Traer los próximos 6 partidos con los campos extra para detectar multiplicadores
+    // Traer partidos recientes (en curso) + próximos
     const { data: matches } = await supabase
       .from("match_cards")
       .select("id, home_team_name, away_team_name, kickoff_at, phase, group_code, home_team_id, away_team_id, excel_match_key")
-      .gt("kickoff_at", nowStr)
+      .gt("kickoff_at", threeHoursAgo)
       .order("kickoff_at", { ascending: true })
       .limit(6);
 

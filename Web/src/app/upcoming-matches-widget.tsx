@@ -36,7 +36,12 @@ function getTimeUntil(isoString: string): string {
   const now = new Date();
   const kickoff = new Date(isoString);
   const diffMs = kickoff.getTime() - now.getTime();
-  if (diffMs <= 0) return "Ahora";
+  if (diffMs <= 0) {
+    // Partido ya empezado: mostrar "En curso" si lleva menos de 3h (duración max aprox)
+    const elapsedMs = Math.abs(diffMs);
+    if (elapsedMs < 3 * 60 * 60 * 1000) return "En curso";
+    return "Finalizado";
+  }
   const diffH = Math.floor(diffMs / (1000 * 60 * 60));
   const diffM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
   if (diffH >= 48) {
@@ -275,7 +280,10 @@ export function UpcomingMatchesWidget({ matches }: Props) {
             {matches.map((match) => {
               const { date, time } = formatMatchDate(match.kickoff_at);
               const countdown = getTimeUntil(match.kickoff_at);
-              const isSoon = new Date(match.kickoff_at).getTime() - now.getTime() < 6 * 60 * 60 * 1000;
+              const kickoffTime = new Date(match.kickoff_at).getTime();
+              const nowTime = now.getTime();
+              const isLive = kickoffTime <= nowTime && nowTime - kickoffTime < 3 * 60 * 60 * 1000;
+              const isSoon = isLive || (kickoffTime - nowTime < 6 * 60 * 60 * 1000 && kickoffTime > nowTime);
 
               return (
                 <div key={match.id} className="upcoming-match-item">
