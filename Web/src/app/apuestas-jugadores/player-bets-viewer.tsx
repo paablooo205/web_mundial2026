@@ -456,27 +456,66 @@ export function PlayerBetsViewer({
 
           {groupCodes.map((groupCode) => {
             const groupMatches = getMatchesForGroup(groupCode);
+            const standing = playerSimulatedBracket.standings[groupCode] ?? [];
             return (
               <div key={groupCode} style={{ display: activeViewerGroup === groupCode ? "block" : "none" }}>
-                <section className="panel" style={{ marginBottom: "24px" }}>
-                  {groupMatches.map((match) => {
-                    const pred = selectedPlayerPredictions.find((p) => p.match_id === match.id);
-                    return (
-                      <div className="match-row" key={match.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", padding: "14px 20px" }}>
-                        <div className="team-names">
-                          <strong>{match.home_team_name}</strong>
-                          <span className="muted" style={{ fontSize: "0.75rem", margin: "2px 0" }}>vs</span>
-                          <strong>{match.away_team_name}</strong>
-                        </div>
-                        <div style={{ display: "flex", gap: "10px", fontSize: "18px", fontWeight: "800", paddingRight: "16px" }}>
-                          <span style={{ color: "var(--usa-red-bright)" }}>{pred?.predicted_home_goals !== null ? pred?.predicted_home_goals : "-"}</span>
-                          <span className="muted">:</span>
-                          <span style={{ color: "var(--usa-red-bright)" }}>{pred?.predicted_away_goals !== null ? pred?.predicted_away_goals : "-"}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </section>
+                <div className="split-layout">
+                  <div>
+                    <h3 className="phase-title" style={{ marginBottom: "16px", paddingLeft: "12px", borderLeft: "3px solid var(--usa-blue-bright)" }}>
+                      Clasificación simulada – Grupo {groupCode}
+                    </h3>
+                    <div className="group-standing-wrap" style={{ margin: 0 }}>
+                      <table className="standing-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Selección</th>
+                            <th title="Puntos">Pts</th>
+                            <th title="Diferencia de goles">DG</th>
+                            <th title="Goles a favor">GF</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {standing.map((entry, i) => (
+                            <tr key={entry.team.canonical_name} className={i < 2 ? "qualifies" : i === 2 ? "third-place" : ""}>
+                              <td>{i + 1}</td>
+                              <td>{entry.team.canonical_name}</td>
+                              <td><strong>{entry.pts}</strong></td>
+                              <td>{entry.gd > 0 ? `+${entry.gd}` : entry.gd}</td>
+                              <td>{entry.gs}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <p className="standing-legend"><span className="dot qualifies-dot" /> Clasificado · <span className="dot third-dot" /> Posible mejor 3º</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="phase-title" style={{ marginBottom: "16px", paddingLeft: "12px", borderLeft: "3px solid var(--usa-red-bright)" }}>
+                      Partidos del Grupo {groupCode}
+                    </h3>
+                    <section className="panel" style={{ margin: 0 }}>
+                      {groupMatches.map((match) => {
+                        const pred = selectedPlayerPredictions.find((p) => p.match_id === match.id);
+                        return (
+                          <div className="match-row" key={match.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", padding: "14px 20px" }}>
+                            <div className="team-names">
+                              <strong>{match.home_team_name}</strong>
+                              <span className="muted" style={{ fontSize: "0.75rem", margin: "2px 0" }}>vs</span>
+                              <strong>{match.away_team_name}</strong>
+                            </div>
+                            <div style={{ display: "flex", gap: "10px", fontSize: "18px", fontWeight: "800", paddingRight: "16px" }}>
+                              <span style={{ color: "var(--usa-red-bright)" }}>{pred?.predicted_home_goals !== null ? pred?.predicted_home_goals : "-"}</span>
+                              <span className="muted">:</span>
+                              <span style={{ color: "var(--usa-red-bright)" }}>{pred?.predicted_away_goals !== null ? pred?.predicted_away_goals : "-"}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </section>
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -852,6 +891,18 @@ export function PlayerBetsViewer({
           )}
         </div>
       )}
+      <style jsx>{`
+        .split-layout {
+          display: grid;
+          grid-template-columns: minmax(320px, 420px) 1fr;
+          gap: 32px;
+        }
+        @media (max-width: 900px) {
+          .split-layout {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }
