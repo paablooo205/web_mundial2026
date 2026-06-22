@@ -269,13 +269,21 @@ export function PlayerBetsViewer({
     const homeGoals = pred?.predicted_home_goals ?? "-";
     const awayGoals = pred?.predicted_away_goals ?? "-";
 
+    const isPlayed = results.some((r) => r.match_id === id);
+
     return (
       <div
         key={id}
-        className={`admin-ko-row ${teamsResolved ? "" : "admin-ko-row--pending"}`}
+        className={`admin-ko-row ${teamsResolved ? "" : "admin-ko-row--pending"} ${isPlayed ? "played-match" : ""}`}
+        style={isPlayed ? { opacity: 0.6, backgroundColor: "rgba(0, 0, 0, 0.25)", filter: "grayscale(40%)", borderLeft: "3px solid var(--muted)" } : undefined}
       >
         <div className="admin-ko-row__meta">
           <span className="admin-ko-row__id">Partido {id}</span>
+          {isPlayed && (
+            <span style={{ fontSize: "0.65rem", backgroundColor: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: "4px", color: "var(--muted)", marginTop: "4px", display: "inline-block" }}>
+              ✅ Jugado
+            </span>
+          )}
         </div>
         <div className="admin-ko-row__teams">
           <div className={`admin-ko-row__team ${isHomeWinner ? "admin-ko-row__team--winner" : ""}`}>
@@ -498,12 +506,18 @@ export function PlayerBetsViewer({
                     <section className="panel" style={{ margin: 0 }}>
                       {groupMatches.map((match) => {
                         const pred = selectedPlayerPredictions.find((p) => p.match_id === match.id);
+                        const isPlayed = results.some((r) => r.match_id === match.id);
                         return (
-                          <div className="match-row" key={match.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", padding: "14px 20px" }}>
+                          <div className={`match-row ${isPlayed ? "played-match" : ""}`} key={match.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", padding: "14px 20px", opacity: isPlayed ? 0.6 : 1, backgroundColor: isPlayed ? "rgba(0, 0, 0, 0.25)" : "transparent", filter: isPlayed ? "grayscale(40%)" : "none", borderLeft: isPlayed ? "3px solid var(--muted)" : "none" }}>
                             <div className="team-names">
                               <strong>{match.home_team_name}</strong>
                               <span className="muted" style={{ fontSize: "0.75rem", margin: "2px 0" }}>vs</span>
                               <strong>{match.away_team_name}</strong>
+                              {isPlayed && (
+                                <span style={{ fontSize: "0.65rem", backgroundColor: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: "4px", color: "var(--muted)", marginLeft: "8px" }}>
+                                  ✅ Jugado
+                                </span>
+                              )}
                             </div>
                             <div style={{ display: "flex", gap: "10px", fontSize: "18px", fontWeight: "800", paddingRight: "16px" }}>
                               <span style={{ color: "var(--usa-red-bright)" }}>{pred?.predicted_home_goals !== null ? pred?.predicted_home_goals : "-"}</span>
@@ -621,10 +635,14 @@ export function PlayerBetsViewer({
                         const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
                         const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
                         const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
+                        const isPlayed = results.some((r) => r.match_id === id);
 
                         return (
-                          <div className="bracket-card" key={id} style={{ opacity: isBracketSlotResolved(resolvedHome) ? 1 : 0.4 }}>
-                            <div className="bracket-card-header">P. {id}</div>
+                          <div className={`bracket-card ${isPlayed ? "played-match" : ""}`} key={id} style={{ opacity: isPlayed ? 0.5 : (isBracketSlotResolved(resolvedHome) ? 1 : 0.4), filter: isPlayed ? "grayscale(40%)" : "none", borderColor: isPlayed ? "var(--muted)" : "" }}>
+                            <div className="bracket-card-header" style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span>P. {id}</span>
+                              {isPlayed && <span style={{ fontSize: "10px", color: "var(--muted)" }}>✅ Jugado</span>}
+                            </div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--usa-red-bright)" : "inherit" }}>
                                 {resolvedHome} {isHomeWinner && "🏆"}
@@ -650,10 +668,14 @@ export function PlayerBetsViewer({
                         const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
                         const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
                         const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
+                        const isPlayed = results.some((r) => r.match_id === id);
 
                         return (
-                          <div className="bracket-card" key={id} style={{ opacity: isBracketSlotResolved(resolvedHome) ? 1 : 0.4 }}>
-                            <div className="bracket-card-header">P. {id}</div>
+                          <div className={`bracket-card ${isPlayed ? "played-match" : ""}`} key={id} style={{ opacity: isPlayed ? 0.5 : (isBracketSlotResolved(resolvedHome) ? 1 : 0.4), filter: isPlayed ? "grayscale(40%)" : "none", borderColor: isPlayed ? "var(--muted)" : "" }}>
+                            <div className="bracket-card-header" style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span>P. {id}</span>
+                              {isPlayed && <span style={{ fontSize: "10px", color: "var(--muted)" }}>✅ Jugado</span>}
+                            </div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--usa-red-bright)" : "inherit" }}>
                                 {resolvedHome} {isHomeWinner && "🏆"}
@@ -679,10 +701,14 @@ export function PlayerBetsViewer({
                         const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
                         const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
                         const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
+                        const isPlayed = results.some((r) => r.match_id === id);
 
                         return (
-                          <div className="bracket-card" key={id} style={{ opacity: isBracketSlotResolved(resolvedHome) ? 1 : 0.4 }}>
-                            <div className="bracket-card-header">P. {id}</div>
+                          <div className={`bracket-card ${isPlayed ? "played-match" : ""}`} key={id} style={{ opacity: isPlayed ? 0.5 : (isBracketSlotResolved(resolvedHome) ? 1 : 0.4), filter: isPlayed ? "grayscale(40%)" : "none", borderColor: isPlayed ? "var(--muted)" : "" }}>
+                            <div className="bracket-card-header" style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span>P. {id}</span>
+                              {isPlayed && <span style={{ fontSize: "10px", color: "var(--muted)" }}>✅ Jugado</span>}
+                            </div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--usa-red-bright)" : "inherit" }}>
                                 {resolvedHome} {isHomeWinner && "🏆"}
@@ -801,10 +827,14 @@ export function PlayerBetsViewer({
                         const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
                         const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
                         const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
+                        const isPlayed = results.some((r) => r.match_id === id);
 
                         return (
-                          <div className="bracket-card" key={id} style={{ opacity: isBracketSlotResolved(resolvedHome) ? 1 : 0.4 }}>
-                            <div className="bracket-card-header">P. {id}</div>
+                          <div className={`bracket-card ${isPlayed ? "played-match" : ""}`} key={id} style={{ opacity: isPlayed ? 0.5 : (isBracketSlotResolved(resolvedHome) ? 1 : 0.4), filter: isPlayed ? "grayscale(40%)" : "none", borderColor: isPlayed ? "var(--muted)" : "" }}>
+                            <div className="bracket-card-header" style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span>P. {id}</span>
+                              {isPlayed && <span style={{ fontSize: "10px", color: "var(--muted)" }}>✅ Jugado</span>}
+                            </div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--usa-red-bright)" : "inherit" }}>
                                 {resolvedHome} {isHomeWinner && "🏆"}
@@ -830,10 +860,14 @@ export function PlayerBetsViewer({
                         const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
                         const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
                         const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
+                        const isPlayed = results.some((r) => r.match_id === id);
 
                         return (
-                          <div className="bracket-card" key={id} style={{ opacity: isBracketSlotResolved(resolvedHome) ? 1 : 0.4 }}>
-                            <div className="bracket-card-header">P. {id}</div>
+                          <div className={`bracket-card ${isPlayed ? "played-match" : ""}`} key={id} style={{ opacity: isPlayed ? 0.5 : (isBracketSlotResolved(resolvedHome) ? 1 : 0.4), filter: isPlayed ? "grayscale(40%)" : "none", borderColor: isPlayed ? "var(--muted)" : "" }}>
+                            <div className="bracket-card-header" style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span>P. {id}</span>
+                              {isPlayed && <span style={{ fontSize: "10px", color: "var(--muted)" }}>✅ Jugado</span>}
+                            </div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--usa-red-bright)" : "inherit" }}>
                                 {resolvedHome} {isHomeWinner && "🏆"}
@@ -859,10 +893,14 @@ export function PlayerBetsViewer({
                         const resolvedAway = playerSimulatedBracket.resolved[id]?.away ?? "Por decidir";
                         const isHomeWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedHome;
                         const isAwayWinner = pred?.predicted_winner_team_id && teams.find((t) => t.id === pred.predicted_winner_team_id)?.canonical_name === resolvedAway;
+                        const isPlayed = results.some((r) => r.match_id === id);
 
                         return (
-                          <div className="bracket-card" key={id} style={{ opacity: isBracketSlotResolved(resolvedHome) ? 1 : 0.4 }}>
-                            <div className="bracket-card-header">P. {id}</div>
+                          <div className={`bracket-card ${isPlayed ? "played-match" : ""}`} key={id} style={{ opacity: isPlayed ? 0.5 : (isBracketSlotResolved(resolvedHome) ? 1 : 0.4), filter: isPlayed ? "grayscale(40%)" : "none", borderColor: isPlayed ? "var(--muted)" : "" }}>
+                            <div className="bracket-card-header" style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span>P. {id}</span>
+                              {isPlayed && <span style={{ fontSize: "10px", color: "var(--muted)" }}>✅ Jugado</span>}
+                            </div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <span style={{ fontSize: "12px", fontWeight: isHomeWinner ? "800" : "600", color: isHomeWinner ? "var(--usa-red-bright)" : "inherit" }}>
                                 {resolvedHome} {isHomeWinner && "🏆"}
