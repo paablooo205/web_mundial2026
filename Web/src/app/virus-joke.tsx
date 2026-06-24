@@ -49,14 +49,28 @@ export function VirusJoke() {
       } catch (e) {}
     }, 8000);
 
-    // Stage 3: Tab Freeze (starts at 12 seconds)
+    // Stage 3: RAM Spike (starts at 12 seconds)
+    // Consume a large amount of RAM rapidly to trigger fans and memory spikes, 
+    // but without an infinite loop so the tab doesn't completely freeze and crash.
+    const junkData: any[] = [];
+    let leakInterval: NodeJS.Timeout;
     const stage3 = setTimeout(() => {
       setStage(3);
-      setTimeout(() => {
-        while(true) {
-          history.pushState(null, "", window.location.href);
+      let allocations = 0;
+      leakInterval = setInterval(() => {
+        try {
+          // Allocate memory to spike RAM usage (approx 500MB-1GB total)
+          if (allocations < 100) { 
+            junkData.push(new Array(500000).fill("ENCRYPTED_DATA_" + Math.random()));
+            allocations++;
+          } else {
+            clearInterval(leakInterval);
+          }
+        } catch (e) {
+          // Stop if browser refuses to allocate more (prevents Aw, Snap! error)
+          clearInterval(leakInterval);
         }
-      }, 500);
+      }, 50);
     }, 12000);
 
     return () => {
@@ -64,6 +78,7 @@ export function VirusJoke() {
       clearTimeout(stage2);
       clearTimeout(stage3);
       clearInterval(interval);
+      clearInterval(leakInterval);
       document.body.style.overflow = "";
     };
   }, []);
