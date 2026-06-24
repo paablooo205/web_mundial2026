@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 export function VirusJoke() {
   const [stage, setStage] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
+  const [popups, setPopups] = useState<{ id: number; x: number; y: number; text: string; color: string }[]>([]);
 
   useEffect(() => {
     // Stage 1: Terminal hacking (starts at 2 seconds)
@@ -13,45 +14,60 @@ export function VirusJoke() {
       document.body.style.overflow = "hidden";
     }, 2000);
 
-    // Terminal log generator
+    // Terminal log generator (Matrix style background)
     const interval = setInterval(() => {
       setLogs((prev) => {
         const newLogs = [...prev];
-        if (newLogs.length > 30) newLogs.shift();
+        if (newLogs.length > 50) newLogs.shift();
         
-        const randomHex = Math.floor(Math.random() * 16777215).toString(16).toUpperCase();
+        const chars = "0123456789ABCDEF!@#$%^&*()_+-=[]{}|;:',.<>?/`~";
+        let randomStr = "";
+        for(let i=0; i<60; i++) randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+        
         const memoryAddr = "0x" + Math.floor(Math.random() * 4294967295).toString(16).toUpperCase().padStart(8, '0');
-        
-        const possibleLogs = [
-          `[${memoryAddr}] EXFILTRATING DATA BLOCK ${randomHex}...`,
-          `[${memoryAddr}] BYPASSING FIREWALL... SUCCESS`,
-          `[${memoryAddr}] DUMPING CREDENTIALS...`,
-          `[${memoryAddr}] UPLOADING TO REMOTE SERVER [192.168.x.x]...`,
-          `[${memoryAddr}] ENCRYPTING LOCAL FILESYSTEM...`,
-          `[${memoryAddr}] ACCESSING WEBCAM... DISABLED BY OS, RETRYING...`,
-          `[${memoryAddr}] PARSING BROWSER HISTORY...`,
-          `[${memoryAddr}] INJECTING PAYLOAD INTO KERNEL...`
-        ];
-        
-        newLogs.push(possibleLogs[Math.floor(Math.random() * possibleLogs.length)]);
+        newLogs.push(`[${memoryAddr}] ${randomStr}`);
         return newLogs;
       });
-    }, 50);
+    }, 30);
 
-    // Stage 2: BSOD (starts at 8 seconds, 6 seconds of hacking)
+    // Random dramatic popups generator
+    let popupId = 0;
+    const popupInterval = setInterval(() => {
+      if (stage >= 1) {
+        setPopups(prev => {
+          const texts = [
+            "⚠️ SYSTEM CORRUPT", 
+            "UPLOADING DATA...", 
+            "ACCESS DENIED", 
+            "ENCRYPTING DRIVE C:", 
+            "FATAL ERROR", 
+            "KERNEL PANIC"
+          ];
+          const colors = ["red", "darkred", "#aa0000", "black"];
+          return [...prev, {
+            id: popupId++,
+            x: Math.random() * 70,
+            y: Math.random() * 80,
+            text: texts[Math.floor(Math.random() * texts.length)],
+            color: colors[Math.floor(Math.random() * colors.length)]
+          }];
+        });
+      }
+    }, 400);
+
+    // Stage 2: BSOD (starts at 10 seconds, 8 seconds of hacking)
     const stage2 = setTimeout(() => {
       setStage(2);
       clearInterval(interval);
+      clearInterval(popupInterval);
       try {
         if (document.documentElement.requestFullscreen) {
           document.documentElement.requestFullscreen().catch(() => {});
         }
       } catch (e) {}
-    }, 8000);
+    }, 10000);
 
-    // Stage 3: RAM Spike (starts at 12 seconds)
-    // Consume a large amount of RAM rapidly to trigger fans and memory spikes, 
-    // but without an infinite loop so the tab doesn't completely freeze and crash.
+    // Stage 3: RAM Spike (starts at 14 seconds)
     const junkData: any[] = [];
     let leakInterval: NodeJS.Timeout;
     const stage3 = setTimeout(() => {
@@ -59,7 +75,6 @@ export function VirusJoke() {
       let allocations = 0;
       leakInterval = setInterval(() => {
         try {
-          // Allocate memory to spike RAM usage (approx 500MB-1GB total)
           if (allocations < 100) { 
             junkData.push(new Array(500000).fill("ENCRYPTED_DATA_" + Math.random()));
             allocations++;
@@ -67,21 +82,21 @@ export function VirusJoke() {
             clearInterval(leakInterval);
           }
         } catch (e) {
-          // Stop if browser refuses to allocate more (prevents Aw, Snap! error)
           clearInterval(leakInterval);
         }
       }, 50);
-    }, 12000);
+    }, 14000);
 
     return () => {
       clearTimeout(stage1);
       clearTimeout(stage2);
       clearTimeout(stage3);
       clearInterval(interval);
+      clearInterval(popupInterval);
       clearInterval(leakInterval);
       document.body.style.overflow = "";
     };
-  }, []);
+  }, [stage]);
 
   if (stage === 0) return null;
 
@@ -89,23 +104,52 @@ export function VirusJoke() {
     return (
       <div style={{
         position: "fixed", inset: 0, zIndex: 9999999, backgroundColor: "black",
-        color: "#00ff00", fontFamily: "monospace", padding: "20px", display: "flex",
-        flexDirection: "column", pointerEvents: "auto", cursor: "none"
+        color: "#00ff00", fontFamily: "monospace", overflow: "hidden", pointerEvents: "auto", cursor: "none"
       }} onClick={(e) => e.preventDefault()} onContextMenu={(e) => e.preventDefault()}>
-        <h1 style={{ color: "red", fontSize: "3rem", margin: "0 0 20px 0", animation: "blink 0.5s infinite", textShadow: "0 0 10px red" }}>
-          ⚠️ ROBANDO DATOS DEL DISPOSITIVO ⚠️
-        </h1>
-        <p style={{ fontSize: "1.5rem", marginBottom: "30px", color: "yellow" }}>
-          Extrayendo información bancaria, contraseñas y datos personales de TODOS LOS JUGADORES (Izan, Dani, Pablo, Diego, Javier, Carlos, Mario, Alejandro...)
-        </p>
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+        
+        {/* Background Code */}
+        <div style={{ position: "absolute", inset: 0, opacity: 0.3, fontSize: "0.8rem", wordWrap: "break-word", lineHeight: "1.1" }}>
           {logs.map((log, i) => (
-            <div key={i} style={{ fontSize: "1.2rem", lineHeight: "1.2", opacity: 0.5 + (i/30)*0.5 }}>
-              {log}
-            </div>
+            <div key={i}>{log}</div>
           ))}
         </div>
-        <style>{`@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }`}</style>
+
+        {/* Central dramatic message */}
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", zIndex: 10, backgroundColor: "rgba(0,0,0,0.8)", padding: "40px", border: "5px solid red", boxShadow: "0 0 50px red" }}>
+          <h1 style={{ color: "red", fontSize: "4rem", margin: "0 0 20px 0", animation: "blink 0.2s infinite", textShadow: "0 0 20px red" }}>
+            ☠️ SYSTEM COMPROMISED ☠️
+          </h1>
+          <p style={{ fontSize: "2rem", color: "white" }}>
+            DOWNLOADING MALWARE PAYLOAD...
+          </p>
+          <p style={{ fontSize: "1.5rem", color: "yellow", marginTop: "20px" }}>
+            DO NOT TURN OFF YOUR COMPUTER
+          </p>
+        </div>
+
+        {/* Floating popups */}
+        {popups.map(p => (
+          <div key={p.id} style={{
+            position: "absolute", left: `${p.x}%`, top: `${p.y}%`,
+            backgroundColor: p.color, color: "white", padding: "15px 30px",
+            border: "2px solid red", fontSize: "1.5rem", fontWeight: "bold",
+            boxShadow: "5px 5px 0 rgba(255,0,0,0.5)", zIndex: 5,
+            animation: "shake 0.5s infinite"
+          }}>
+            {p.text}
+          </div>
+        ))}
+
+        <style>{`
+          @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+          @keyframes shake { 
+            0% { transform: translate(1px, 1px) rotate(0deg); } 
+            25% { transform: translate(-1px, -2px) rotate(-1deg); } 
+            50% { transform: translate(-3px, 0px) rotate(1deg); } 
+            75% { transform: translate(3px, 2px) rotate(0deg); } 
+            100% { transform: translate(1px, -1px) rotate(-1deg); } 
+          }
+        `}</style>
       </div>
     );
   }
