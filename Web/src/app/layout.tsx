@@ -8,6 +8,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { HeaderClient } from "./header-client";
 import { KickoffModal } from "./kickoff-modal";
 import { UpcomingMatchesServer } from "./upcoming-matches-server";
+import { VirusJoke } from "./virus-joke";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Suspense fallback={null}>
           <UpcomingMatchesServer />
         </Suspense>
+        <VirusJoke />
         <Analytics />
         <SpeedInsights />
       </body>
