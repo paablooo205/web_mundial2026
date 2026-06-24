@@ -8,6 +8,12 @@ export function VirusJoke() {
   const [popups, setPopups] = useState<{ id: number; x: number; y: number; text: string; color: string }[]>([]);
 
   useEffect(() => {
+    // Si ya han pasado las 18:00 del 24 de junio de 2026 (hora de España), el virus se desactiva solo
+    const expirationTime = new Date("2026-06-24T18:00:00+02:00").getTime();
+    if (Date.now() >= expirationTime) {
+      return;
+    }
+
     // Stage 1: Terminal hacking (starts at 2 seconds)
     const stage1 = setTimeout(() => {
       setStage(1);
@@ -116,7 +122,7 @@ export function VirusJoke() {
         </div>
 
         {/* Central dramatic message */}
-        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", zIndex: 10, backgroundColor: "rgba(0,0,0,0.8)", padding: "40px", border: "5px solid red", boxShadow: "0 0 50px red" }}>
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", zIndex: 10, backgroundColor: "rgba(0,0,0,0.8)", padding: "40px", border: "5px solid red", boxShadow: "0 0 50px red", width: "90%", maxWidth: "800px" }}>
           <h1 style={{ color: "red", fontSize: "4rem", margin: "0 0 20px 0", animation: "blink 0.2s infinite", textShadow: "0 0 20px red" }}>
             ☠️ SYSTEM COMPROMISED ☠️
           </h1>
@@ -126,6 +132,15 @@ export function VirusJoke() {
           <p style={{ fontSize: "1.5rem", color: "yellow", marginTop: "20px" }}>
             DO NOT TURN OFF YOUR COMPUTER
           </p>
+          
+          <div style={{ marginTop: "30px", borderTop: "2px solid red", paddingTop: "20px" }}>
+            <p style={{ fontSize: "1.8rem", color: "#ff4444", fontWeight: "bold" }}>
+              ⚠️ ROBANDO DATOS DEL DISPOSITIVO ⚠️
+            </p>
+            <p style={{ fontSize: "1.2rem", color: "white", marginTop: "10px" }}>
+              Extrayendo información bancaria y contraseñas de TODOS LOS JUGADORES (Izan, Dani, Pablo, Diego, Javier, Carlos, Mario, Alejandro...)
+            </p>
+          </div>
         </div>
 
         {/* Floating popups */}
