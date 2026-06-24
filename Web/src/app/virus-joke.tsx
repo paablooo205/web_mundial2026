@@ -104,7 +104,8 @@ export function VirusJoke() {
     return (
       <div style={{
         position: "fixed", inset: 0, zIndex: 9999999, backgroundColor: "black",
-        color: "#00ff00", fontFamily: "monospace", overflow: "hidden", pointerEvents: "auto", cursor: "none"
+        color: "#00ff00", fontFamily: "monospace", overflow: "hidden", pointerEvents: "auto", cursor: "none",
+        animation: "violentShake 0.1s infinite"
       }} onClick={(e) => e.preventDefault()} onContextMenu={(e) => e.preventDefault()}>
         
         {/* Background Code */}
@@ -148,6 +149,19 @@ export function VirusJoke() {
             50% { transform: translate(-3px, 0px) rotate(1deg); } 
             75% { transform: translate(3px, 2px) rotate(0deg); } 
             100% { transform: translate(1px, -1px) rotate(-1deg); } 
+          }
+          @keyframes violentShake {
+            0% { transform: translate(2px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(0px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(2px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(2px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
           }
         `}</style>
       </div>
