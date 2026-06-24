@@ -12,21 +12,7 @@ export async function getPublicStandings(): Promise<StandingRow[]> {
     throw error;
   }
 
-  const standings = data ?? [];
-  const modifiedStandings = standings.map(row => {
-    const name = row.display_name.toLowerCase();
-    if (name.includes("izan") || name.includes("dani")) {
-      return { ...row, total_points: 23 };
-    }
-    return row;
-  });
-
-  modifiedStandings.sort((a, b) => b.total_points - a.total_points);
-  modifiedStandings.forEach((row, i) => {
-    row.position = i + 1;
-  });
-
-  return modifiedStandings;
+  return data ?? [];
 }
 
 export async function getPlayerEntryData(code: string) {
