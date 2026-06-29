@@ -349,7 +349,8 @@ export function AdminForm({
         const rs = realScores[matchId];
         if (rs?.winner) return Number(rs.winner);
         return results.find((r) => r.match_id === matchId)?.winner_team_id ?? null;
-      }
+      },
+      isRealBracket: true
     });
   }, [realScores, teams, groupStageMatches, results]);
 

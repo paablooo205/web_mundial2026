@@ -34,6 +34,25 @@ export const KO_FORMULAS: Record<number, { home: string; away: string }> = {
   104: { home: "W101", away: "W102" }
 };
 
+export const REAL_MATCHUPS_16: Record<number, { home: string; away: string }> = {
+  73: { home: "Sudáfrica", away: "Canadá" },
+  74: { home: "Brasil", away: "Japón" },
+  75: { home: "Alemania", away: "Paraguay" },
+  76: { home: "Países Bajos", away: "Marruecos" },
+  77: { home: "Costa de Marfil", away: "Noruega" },
+  78: { home: "Francia", away: "Suecia" },
+  79: { home: "México", away: "Ecuador" },
+  80: { home: "Inglaterra", away: "RD Congo" },
+  81: { home: "Bélgica", away: "Senegal" },
+  82: { home: "Estados Unidos", away: "Bosnia y Herzegovina" },
+  83: { home: "España", away: "Austria" },
+  84: { home: "Portugal", away: "Croacia" },
+  85: { home: "Suiza", away: "Argelia" },
+  86: { home: "Australia", away: "Egipto" },
+  87: { home: "Argentina", away: "Cabo Verde" },
+  88: { home: "Colombia", away: "Ghana" }
+};
+
 export const groupCodes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"] as const;
 
 export const KNOCKOUT_ROUND_ORDER = [
@@ -86,6 +105,7 @@ type ResolveParams = {
     awayName: string,
     score: BracketScore
   ) => number | null;
+  isRealBracket?: boolean;
 };
 
 export function resolveKnockoutBracket({
@@ -93,7 +113,8 @@ export function resolveKnockoutBracket({
   groupStageMatches,
   teams,
   scores,
-  getWinnerTeamId
+  getWinnerTeamId,
+  isRealBracket
 }: ResolveParams) {
   const isGroupFullyScored = (code: string) => {
     const groupTeamNames = new Set(
@@ -258,10 +279,14 @@ export function resolveKnockoutBracket({
   for (let id = 73; id <= 104; id++) {
     const formula = KO_FORMULAS[id];
     if (formula) {
-      resolved[id] = {
-        home: resolveFormula(formula.home),
-        away: resolveFormula(formula.away)
-      };
+      if (isRealBracket && REAL_MATCHUPS_16[id]) {
+        resolved[id] = REAL_MATCHUPS_16[id];
+      } else {
+        resolved[id] = {
+          home: resolveFormula(formula.home),
+          away: resolveFormula(formula.away)
+        };
+      }
     }
   }
 

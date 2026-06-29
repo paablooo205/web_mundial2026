@@ -117,7 +117,8 @@ export function ResultadosClient({ matches, teams, results, awards }: Props) {
       getWinnerTeamId: (matchId) => {
         const res = results.find((r) => r.match_id === matchId);
         return res?.winner_team_id ?? null;
-      }
+      },
+      isRealBracket: true
     });
   }, [matches, teams, scores, results]);
 
