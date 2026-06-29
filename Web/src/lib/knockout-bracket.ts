@@ -1,40 +1,35 @@
 /** Fórmulas de emparejamiento del cuadro (ids de partido 73–104). */
 export const KO_FORMULAS: Record<number, { home: string; away: string }> = {
-  // Dieciseisavos de final (Round of 32)
-  73: { home: "2A", away: "2B" },   // Sudáfrica vs Canadá
-  74: { home: "1E", away: "3D" },   // Alemania vs Paraguay
-  75: { home: "1F", away: "2C" },   // Países Bajos vs Marruecos
-  76: { home: "1C", away: "2F" },   // Brasil vs Japón
-  77: { home: "1I", away: "3F" },   // Francia vs Suecia
-  78: { home: "2E", away: "2I" },   // Costa de Marfil vs Noruega
-  79: { home: "1A", away: "3E" },   // México vs Ecuador
-  80: { home: "1L", away: "3K" },   // Inglaterra vs RD Congo
-  81: { home: "1D", away: "3B" },   // USA vs Bosnia y Herzegovina
-  82: { home: "1G", away: "3I" },   // Bélgica vs Senegal
-  83: { home: "2K", away: "2L" },   // Portugal vs Croacia
-  84: { home: "1H", away: "2J" },   // España vs Austria
-  85: { home: "1B", away: "3J" },   // Suiza vs Argelia
-  86: { home: "1J", away: "2H" },   // Argentina vs Cabo Verde
-  87: { home: "1K", away: "3L" },   // Colombia vs Ghana
-  88: { home: "2D", away: "2G" },   // Australia vs Egipto
-  // Octavos de final (Round of 16)
-  89: { home: "W74", away: "W77" },
-  90: { home: "W73", away: "W75" },
+  73: { home: "2A", away: "2B" },
+  74: { home: "1C", away: "2F" },
+  75: { home: "1E", away: "3ABCDF" },
+  76: { home: "1F", away: "2C" },
+  77: { home: "2E", away: "2I" },
+  78: { home: "1I", away: "3CDFGH" },
+  79: { home: "1A", away: "3CEFHI" },
+  80: { home: "1L", away: "3EHIJK" },
+  81: { home: "1G", away: "3AEHIJ" },
+  82: { home: "1D", away: "3BEFIJ" },
+  83: { home: "1H", away: "2J" },
+  84: { home: "2K", away: "2L" },
+  85: { home: "1B", away: "3EFGIJ" },
+  86: { home: "2D", away: "2G" },
+  87: { home: "1J", away: "2H" },
+  88: { home: "1K", away: "3DEIJL" },
+  89: { home: "W73", away: "W75" },
+  90: { home: "W74", away: "W77" },
   91: { home: "W76", away: "W78" },
   92: { home: "W79", away: "W80" },
-  93: { home: "W81", away: "W82" },
-  94: { home: "W83", away: "W84" },
-  95: { home: "W85", away: "W87" },
-  96: { home: "W86", away: "W88" },
-  // Cuartos de final (Quarter-finals)
+  93: { home: "W83", away: "W84" },
+  94: { home: "W81", away: "W82" },
+  95: { home: "W86", away: "W88" },
+  96: { home: "W85", away: "W87" },
   97: { home: "W89", away: "W90" },
-  98: { home: "W91", away: "W92" },
-  99: { home: "W93", away: "W94" },
+  98: { home: "W93", away: "W94" },
+  99: { home: "W91", away: "W92" },
   100: { home: "W95", away: "W96" },
-  // Semifinales
   101: { home: "W97", away: "W98" },
   102: { home: "W99", away: "W100" },
-  // 3er y 4to puesto + Final
   103: { home: "L101", away: "L102" },
   104: { home: "W101", away: "W102" }
 };
@@ -179,6 +174,7 @@ export function resolveKnockoutBracket({
     );
   });
 
+  const assignedThirds = new Set<string>();
   const resolved: Record<number, { home: string; away: string }> = {};
 
   const resolveFormula = (formula: string): string => {
@@ -240,22 +236,17 @@ export function resolveKnockoutBracket({
       return allStandings[code]?.[rank]?.team.canonical_name ?? `${groupPos[1]}º Grupo ${code}`;
     }
 
-    // Terceros clasificados: la fórmula puede ser "3X" (un solo grupo, exacto)
-    // o "3XYZ..." (varios grupos posibles, para el modo pre-torneo).
-    // Con las fórmulas corregidas del Mundial 2026, cada slot de 3er clasificado
-    // tiene un único grupo asignado, así que el primer caso siempre aplica.
     const thirdRef = /^3([A-L]+)$/.exec(formula);
     if (thirdRef) {
       const allowed = thirdRef[1];
-      const requiredCodes = allowed.split("");
-      if (!requiredCodes.every((code) => isGroupFullyScored(code))) {
+      if (!allowed.split("").every((code) => isGroupFullyScored(code))) {
         return `3º de ${allowed}`;
       }
-      // Buscar el mejor tercer clasificado de entre los grupos permitidos
       const match = allThirds.find(
-        (t) => allowed.includes(t.groupCode)
+        (t) => allowed.includes(t.groupCode) && !assignedThirds.has(t.team.canonical_name)
       );
       if (match) {
+        assignedThirds.add(match.team.canonical_name);
         return match.team.canonical_name;
       }
       return `3º mejor (${allowed})`;

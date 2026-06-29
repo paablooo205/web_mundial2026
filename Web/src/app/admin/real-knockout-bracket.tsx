@@ -99,7 +99,7 @@ export function RealKnockoutBracket({ resolved, scores, teams, getWinnerTeamId }
       <div className="bracket-side">
         <div className="bracket-column">
           <h4 className="bracket-col-title">1/16 Izq.</h4>
-          {[74, 77, 73, 75, 76, 78, 79, 80].map(card)}
+          {[73, 75, 74, 77, 76, 78, 79, 80].map(card)}
         </div>
         <div className="bracket-column">
           <h4 className="bracket-col-title">1/8 Izq.</h4>
@@ -107,7 +107,7 @@ export function RealKnockoutBracket({ resolved, scores, teams, getWinnerTeamId }
         </div>
         <div className="bracket-column">
           <h4 className="bracket-col-title">1/4 Izq.</h4>
-          {[97, 98].map(card)}
+          {[97, 99].map(card)}
         </div>
       </div>
 
@@ -142,7 +142,7 @@ export function RealKnockoutBracket({ resolved, scores, teams, getWinnerTeamId }
       <div className="bracket-side">
         <div className="bracket-column">
           <h4 className="bracket-col-title">1/4 Der.</h4>
-          {[99, 100].map(card)}
+          {[98, 100].map(card)}
         </div>
         <div className="bracket-column">
           <h4 className="bracket-col-title">1/8 Der.</h4>
@@ -150,7 +150,7 @@ export function RealKnockoutBracket({ resolved, scores, teams, getWinnerTeamId }
         </div>
         <div className="bracket-column">
           <h4 className="bracket-col-title">1/16 Der.</h4>
-          {[81, 82, 83, 84, 85, 87, 86, 88].map(card)}
+          {[83, 84, 81, 82, 86, 88, 85, 87].map(card)}
         </div>
       </div>
     </div>
